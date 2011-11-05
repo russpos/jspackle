@@ -1,0 +1,12 @@
+{
+    "name" : "jspackle"
+  , "version" : "1.0.0-beta"
+  , "author" : "Russ Posluszny <russ@russposluszny.com>"
+  , "main" : "lib/index"
+  , "dependencies" : {
+      "coffee-script" : ">=1.1.2"
+    , "commander" : ">=0.2.0"
+    , "underscore" : ">=1.2.0"
+    , "pyyaml" : ">=0"
+    }
+}
