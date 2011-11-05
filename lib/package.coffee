@@ -1,11 +1,17 @@
 _    = require 'underscore'
 yaml = require 'pyyaml'
 fs   = require 'fs'
+coffee = require 'coffee-script'
 readDir = require './readdir'
 exec    = require('child_process').exec
 
 defaults =
+  depends: []
+  test_depends: []
+  sources: []
   depends_folder: 'requires'
+  test_build_source_file: 'auto-source.js'
+  test_build_test_file: 'auto-test.js'
   spec_folder: 'specs'
   source_folder: 'src'
 
@@ -30,6 +36,7 @@ class Package
       throw err if err
       @_executeTests (code)=>
         throw err if err
+        @_clean()
         process.exit code
 
   _executeTests: (callback)->
@@ -43,6 +50,11 @@ class Package
         code = 0
       callback code
 
+  _clean: ->
+    fs.unlink "#{@opts.root}JsTestDriver.conf"
+    fs.unlink @opts.test_build_source_file
+    fs.unlink @opts.test_build_test_file
+
   _createJsTestDriverFile: (callback)->
     configs =
       server: @opts.test_server
@@ -52,6 +64,13 @@ class Package
     configs.test = @tests()
     yaml.dump configs, @opts.root+'JsTestDriver.conf', callback
 
+  _coffeeCompile: (sources, path)->
+    compiled = []
+    for src in sources
+      compiled.push coffee.compile fs.readFileSync(src).toString()
+    fs.writeFileSync path, compiled.join "\n"
+    [path]
+
   depends: ->
     @_process 'depends', @opts.depends_folder
 
@@ -59,13 +78,10 @@ class Package
     @_process 'test_depends', @opts.depends_folder
 
   sources: ->
-    if @opts.coffee
-      throw "CoffeScript not yet supported!"
-
-    @_process 'sources', @opts.source_folder
+    sources = @_process 'sources', @opts.source_folder, @opts.test_build_source_file
 
   tests: ->
-    @_process @_findTests(), @opts.spec_folder
+    tests = @_process @_findTests(), @opts.spec_folder, @opts.test_build_test_file
 
   _testCmd: ->
     "js-test-driver --config ./JsTestDriver.conf --tests all #{@opts.test_args}"
@@ -74,11 +90,11 @@ class Package
     found = readDir @opts.root+@opts.spec_folder
     tests = []
     for file in found.files
-      if file.substring(file.length-2) is 'js'
+      if file.substring(file.length-2) is 'js' or file.substring(file.length-6) is 'coffee'
         tests.push(file.replace(@opts.root+@opts.spec_folder+'/', ''))
     tests
 
-  _process: (option, folder)->
+  _process: (option, folder, compile=false)->
     root = folder+'/'
     sources = []
     if typeof option == 'string'
@@ -91,7 +107,8 @@ class Package
         sources.push path
       else
         sources.push root+path
-    sources
+    return sources if not compile and @opts.coffee
+    @_coffeeCompile sources, compile
 
 
 module.exports = Package
