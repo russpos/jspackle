@@ -1,9 +1,10 @@
 _    = require 'underscore'
 yaml = require 'pyyaml'
-fs   = require 'fs'
+fs     = require 'fs'
 coffee = require 'coffee-script'
 readDir = require './readdir'
 exec    = require('child_process').exec
+logging = require './logging'
 
 defaults =
   depends: []
@@ -29,24 +30,38 @@ class Package
     _.extend @opts, defaults, configs, opts, cmd
 
   loadConfigs: (opts)->
-    JSON.parse fs.readFileSync opts.root+opts.path
+    path = opts.root+opts.path
+    logging.debug "Parsing jspackle file: #{path}"
+    JSON.parse fs.readFileSync path
 
   test: ->
-    @_createJsTestDriverFile (err)=>
-      throw err if err
-      @_executeTests (code)=>
+    try
+      @_createJsTestDriverFile (err)=>
         throw err if err
-        @_clean()
-        process.exit code
+        @_executeTests (code)=>
+          throw err if err
+          @_clean()
+          if code
+            logging.critical 'An error occurred while running tests'
+          process.exit code
+    catch e
+      logging.warn e
+      process.exit 1
 
   _executeTests: (callback)->
-    console.log @_testCmd()
+    logging.debug "Executing tests: #{@_testCmd()}"
     exec @_testCmd(), (err, stdout, stderr)->
-      console.log stdout
-      console.log stderr
+      msg =  """
+
+Output:
+
+#{stdout}
+"""
       if err
+        logging.warn msg
         code = err.code
       else
+        logging.info msg
         code = 0
       callback code
 
@@ -62,14 +77,25 @@ class Package
 
     configs.load = @depends().concat(@testDepends()).concat(@sources())
     configs.test = @tests()
-    yaml.dump configs, @opts.root+'JsTestDriver.conf', callback
+
+    logging.info "Executing #{configs.test.length} specs"
+
+    path = "#{@opts.root}JsTestDriver.conf"
+    logging.debug "Dumping configs to: #{path}"
+    yaml.dump configs, path, callback
 
   _coffeeCompile: (sources, path)->
+    logging.info "Compiling coffee-script to '#{path}'"
     compiled = []
+    paths = []
     for src in sources
-      compiled.push coffee.compile fs.readFileSync(src).toString()
+      if @_isHTTP src
+        paths.push src
+      else
+        compiled.push coffee.compile fs.readFileSync(src).toString()
     fs.writeFileSync path, compiled.join "\n"
-    [path]
+    paths.push path
+    return paths
 
   depends: ->
     @_process 'depends', @opts.depends_folder
@@ -90,7 +116,8 @@ class Package
     found = readDir @opts.root+@opts.spec_folder
     tests = []
     for file in found.files
-      if file.substring(file.length-2) is 'js' or file.substring(file.length-6) is 'coffee'
+      if @_isScript file
+        logging.debug "Discovered test: '#{file}'"
         tests.push(file.replace(@opts.root+@opts.spec_folder+'/', ''))
     tests
 
@@ -103,12 +130,18 @@ class Package
       paths = option
 
     for path in paths
-      if path.substring(0, 7) == 'http://' or path.substring(0, 8) == 'https://'
+      if @_isHTTP path
         sources.push path
       else
         sources.push root+path
-    return sources if not compile and @opts.coffee
+    return sources if not (compile and @opts.coffee)
     @_coffeeCompile sources, compile
+
+  _isHTTP: (path)->
+    path.substring(0, 7) == 'http://' or path.substring(0, 8) == 'https://'
+
+  _isScript: (file)->
+    file.substring(file.length-2) is 'js' or file.substring(file.length-6) is 'coffee'
 
 
 module.exports = Package
