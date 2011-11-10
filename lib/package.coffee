@@ -18,7 +18,12 @@ defaults =
 
 class Package
 
-  constructor: (opts={}, cmd)->
+  fs:      require 'fs'
+  exec:    require('child_process').exec
+  readDir: require './readdir'
+  yaml:    require 'pyyaml'
+
+  constructor: (opts={}, cmd={})->
     configs = @loadConfigs opts
     @opts = []
     # Extend objects in reverse precedence, objects will over-write previously
@@ -32,7 +37,11 @@ class Package
   loadConfigs: (opts)->
     path = opts.root+opts.path
     logging.debug "Parsing jspackle file: #{path}"
-    JSON.parse fs.readFileSync path
+    try
+      JSON.parse @fs.readFileSync path
+    catch e
+      logging.critical "ERROR opening config file '#{path}'"
+      process.exit 1
 
   test: ->
     try
@@ -66,9 +75,9 @@ Output:
       callback code
 
   _clean: ->
-    fs.unlink "#{@opts.root}JsTestDriver.conf"
-    fs.unlink @opts.test_build_source_file
-    fs.unlink @opts.test_build_test_file
+    @fs.unlink "#{@opts.root}JsTestDriver.conf"
+    @fs.unlink @opts.test_build_source_file
+    @fs.unlink @opts.test_build_test_file
 
   _createJsTestDriverFile: (callback)->
     configs =
@@ -92,8 +101,8 @@ Output:
       if @_isHTTP src
         paths.push src
       else
-        compiled.push coffee.compile fs.readFileSync(src).toString()
-    fs.writeFileSync path, compiled.join "\n"
+        compiled.push coffee.compile @fs.readFileSync(src).toString()
+    @fs.writeFileSync path, compiled.join "\n"
     paths.push path
     return paths
 
