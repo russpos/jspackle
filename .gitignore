@@ -1,4 +1,5 @@
 *.swp
 *.swo
+JsTestDriver.conf
 node_modules
 npm-debug.log
