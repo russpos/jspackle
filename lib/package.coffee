@@ -1,5 +1,6 @@
-_    = require 'underscore'
+_       = require 'underscore'
 logging = require './logging'
+require './string'
 
 defaults =
   depends: []
@@ -10,6 +11,8 @@ defaults =
   test_build_test_file: 'auto-test.js'
   spec_folder: 'specs'
   source_folder: 'src'
+
+  build_output: 'output.js'
 
 ###
 @description Represents an instance of a Package, which is the basic
@@ -27,6 +30,7 @@ class Package
     system as properties on this class. Allows for them to be easily
     stubbed in our specs so that it can be tested in complete isolation.
   ###
+  flow:    require 'flow'
   fs:      require 'fs'
   coffee:  require 'coffee-script'
   exec:    require('child_process').exec
@@ -102,6 +106,46 @@ class Package
   error: (e, code=1)->
     logging.warn e
     @exit code
+
+  build: ->
+    _this = this
+    sources = []
+
+    # Asyncronously read sources into memory and cache them
+    # the sources object.  Register it as an async multi-step
+    # flow command
+    loadSources = ->
+      flow = this
+      for index, src of _this.sources
+
+        # Execute in a closure so that i is local to this
+        # loop, so that it doesn't change by the time our
+        # callback is executed.
+        do ->
+          i = index
+          registered = flow.MULTI()
+
+          # Read the file, cache the source, and mark this portion of
+          # the multi-step as complete
+          _this.fs.readFile _this.opts.root+src, (err, src)->
+            _this.error err if err
+            sources[i] = src
+            registered()
+
+    # Once all our registered multi-steps have completed, join
+    # the ordered sources with new lines and write the output
+    # to our build file.
+    processSources = ->
+      _this.fs.writeFile _this.opts.root+_this.opts.build_output, sources.join "\n", this
+
+    # End the program, returning the correct error code based on if
+    # writing finished or not.
+    finish = (err)->
+      _this.exit if err then 1 else 0
+
+    @flow.exec loadSources, processSources, finish
+
+
 
   ###
   @description The ``test`` task.  Create test config file, execute
@@ -183,7 +227,7 @@ Output:
     compiled = []
     paths = []
     for src in sources
-      if @_isHTTP src
+      if src.isHTTP()
         paths.push src
       else
         compiled.push @coffee.compile @fs.readFileSync(src).toString()
@@ -195,7 +239,7 @@ Output:
     found = @readDir @opts.root+@opts.spec_folder
     tests = []
     for file in found.files
-      if @_isScript file
+      if file.isScript()
         logging.debug "Discovered test: '#{file}'"
         tests.push(file.replace(@opts.root+@opts.spec_folder+'/', ''))
     tests
@@ -209,18 +253,12 @@ Output:
       paths = option
 
     for path in paths
-      if @_isHTTP path
+      if path.isHTTP()
         sources.push path
       else
         sources.push root+path
     return sources if not (compile and @opts.coffee)
     @_coffeeCompile sources, compile
-
-  _isHTTP: (path)->
-    path.substring(0, 7) == 'http://' or path.substring(0, 8) == 'https://'
-
-  _isScript: (file)->
-    file.substring(file.length-2) is 'js' or file.substring(file.length-6) is 'coffee'
 
 ###
 Read only properties

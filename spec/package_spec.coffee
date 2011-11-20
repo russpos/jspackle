@@ -3,7 +3,7 @@ logging = require '../lib/logging'
 
 describe 'Package', ->
 
-  readDir = coffee = compiled = configs = cmd = opts = exec = yaml = exit = pack = fs = undefined
+  readDir = coffee = compiled = configs = cmd = flow = opts = exec = yaml = exit = pack = fs = undefined
   beforeEach ->
     configs =
       first: 'z'
@@ -44,9 +44,15 @@ describe 'Package', ->
 
     # Stub fs module
     fs =
+      readFile:      jasmine.createSpy "fs.readFile"
       readFileSync:  jasmine.createSpy "fs.readFileSync"
       unlink:        jasmine.createSpy "fs.unlink"
+      writeFile:     jasmine.createSpy "fs.writeFile"
       writeFileSync: jasmine.createSpy "fs.writeFileSync"
+
+    # Stub flow
+    flow =
+      exec: jasmine.createSpy "flow.exec"
 
     # Stub other things that interact with the process
     exit = jasmine.createSpy "process.exit"
@@ -55,6 +61,7 @@ describe 'Package', ->
     Package.prototype.exit = exit
     Package.prototype.exec = exec
     Package.prototype.yaml = yaml
+    Package.prototype.flow = flow
     Package.prototype.readDir = ->
       readDir.apply this, arguments
       retVal =
@@ -68,9 +75,11 @@ describe 'Package', ->
          compiled
 
     Package.prototype.fs =
+      readFile: fs.readFile
       readFileSync: ->
         fs.readFileSync.apply this, arguments
         JSON.stringify configs
+      writeFile: fs.writeFile
       writeFileSync: ->
         fs.writeFileSync.apply this, arguments
       unlink: fs.unlink
@@ -254,3 +263,67 @@ describe 'Package', ->
             expect(exit).toHaveBeenCalled()
             expect(exit.calls[0].args[0]).toEqual 0
 
+    describe 'building', ->
+
+      dummyExec = undefined
+      beforeEach ->
+        dummyExec =
+          MULTI: -> ->
+        pack.build()
+
+      it 'should use flow', ->
+        expect(flow.exec).toHaveBeenCalled()
+
+      describe 'first flow action', ->
+
+        beforeEach ->
+          flow.exec.calls[0].args[0].apply dummyExec
+
+        it 'should load sources', ->
+          expect(fs.readFile).toHaveBeenCalled()
+          expect(fs.readFile.calls.length).toEqual 3
+          expect(fs.readFile.calls[0].args[0]).toEqual process.cwd()+'/src/foo.js'
+          expect(fs.readFile.calls[1].args[0]).toEqual process.cwd()+'/src/baz.js'
+          expect(fs.readFile.calls[2].args[0]).toEqual process.cwd()+'/src/bar.js'
+
+      describe 'when the reading fails', ->
+
+        beforeEach ->
+          flow.exec.calls[0].args[0].apply dummyExec
+          for index, call of fs.readFile.calls
+            call.args[1] 'Error', index+1
+          flow.exec.calls[0].args[1].apply dummyExec
+
+        it 'should error out', ->
+          expect(exit).toHaveBeenCalled()
+          expect(exit.calls[0].args[0]).toEqual 1
+
+      describe 'second flow action', ->
+
+        beforeEach ->
+          flow.exec.calls[0].args[0].apply dummyExec
+          for index, call of fs.readFile.calls
+            call.args[1] null, index+1
+          flow.exec.calls[0].args[1].apply dummyExec
+
+        it 'should write the contents', ->
+          expect(fs.writeFile).toHaveBeenCalled()
+          expect(fs.writeFile.calls.length).toEqual 1
+          expect(fs.writeFile.calls[0].args[0]).toEqual process.cwd()+'/output.js'
+          expect(fs.writeFile.calls[0].args[1]).toEqual "01\n11\n21"
+
+        describe 'when writing succeeds', ->
+          beforeEach ->
+            flow.exec.calls[0].args[2].apply dummyExec
+
+          it 'should exit with a 0', ->
+            expect(exit).toHaveBeenCalled()
+            expect(exit.calls[0].args[0]).toEqual 0
+
+        describe 'when writing fails', ->
+          beforeEach ->
+            flow.exec.calls[0].args[2].apply dummyExec, ['Error']
+
+          it 'should exit with a 1', ->
+            expect(exit).toHaveBeenCalled()
+            expect(exit.calls[0].args[0]).toEqual 1
