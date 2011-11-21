@@ -281,6 +281,6 @@ Package.prototype.__defineGetter__ 'tests', ->
   @_process @_findTests(), @opts.spec_folder, @opts.test_build_test_file
 
 Package.prototype.__defineGetter__ 'testCmd', ->
-  "js-test-driver --config ./JsTestDriver.conf --tests all #{@opts.test_args}"
+  "js-test-driver --config ./JsTestDriver.conf --tests all --reset #{@opts.test_args}"
 
 module.exports = Package
