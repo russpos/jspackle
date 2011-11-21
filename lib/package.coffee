@@ -36,7 +36,7 @@ class Package
   exec:    require('child_process').exec
   readDir: require './readdir'
   yaml:    require 'pyyaml'
-  exit:    process.exit
+  exit:    (code)-> process.nextTick process.exit code
 
   ###
   @description Use the settings provided in ``opts`` (command line options
@@ -84,9 +84,7 @@ class Package
     try
       JSON.parse @fs.readFileSync path
     catch e
-      logging.critical "ERROR opening config file '#{path}'"
-      @exit 1
-
+      @error "ERROR opening config file '#{path}'"
 
   ###
   @description Defines the standard behavior of when an error is
@@ -128,7 +126,7 @@ class Package
           # Read the file, cache the source, and mark this portion of
           # the multi-step as complete
           _this.fs.readFile _this.opts.root+src, (err, src)->
-            _this.error err if err
+            return _this.error err if err
             sources[i] = src
             registered()
 
@@ -172,7 +170,7 @@ class Package
     catch e
       @error e
       logging.warn e
-      process.exit 1
+      @exit 1
 
   ###
   @description Cleans up after a task.  Unlinks any temporary files that
