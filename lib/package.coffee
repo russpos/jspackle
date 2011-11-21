@@ -39,7 +39,6 @@ class Package
   readDir: require './readdir'
   yaml:    require 'pyyaml'
   exit:    (code)->
-    logging.info "Setting with status: #{code}"
     @exitCode = code
 
 
@@ -47,7 +46,6 @@ class Package
   ###
   complete: ->
     process.nextTick =>
-      logging.info "Exiting with code #{@exitCode}"
       process.exit @exitCode
 
   ###
@@ -190,7 +188,6 @@ class Package
 
     # Clean up files that were created along the way
     clean = (err)->
-      logging.info "Returned: #{err}"
       flow = this
       cancel = cancel or err
       _this.clean flow
