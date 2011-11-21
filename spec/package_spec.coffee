@@ -58,7 +58,7 @@ describe 'Package', ->
     exit = jasmine.createSpy "process.exit"
     readDir = jasmine.createSpy "readDir"
 
-    Package.prototype.exit = exit
+    Package.prototype.complete = exit
     Package.prototype.exec = exec
     Package.prototype.yaml = yaml
     Package.prototype.flow = flow
@@ -122,8 +122,7 @@ describe 'Package', ->
       pack = new Package opts, cmd
 
     it 'should exit with code 1', ->
-      expect(exit).toHaveBeenCalled()
-      expect(exit.calls[0].args[0]).toEqual 1
+      expect(pack.exitCode).toEqual 1
 
   describe 'successfully loading configs', ->
 
@@ -184,84 +183,90 @@ describe 'Package', ->
       args = undefined
       beforeEach ->
         pack.test()
-        args = yaml.dump.calls[0].args
+        #args = yaml.dump.calls[0].args
 
-      it 'dumps the YAML configs', ->
-        expect(yaml.dump).toHaveBeenCalled()
+      it 'starts a flow', ->
+        expect(flow.exec).toHaveBeenCalled()
+        expect(flow.exec.calls.length).toEqual 1
 
-      it 'loads depends, test_depends, then sources', ->
-        expect(args[0].load).toEqual [
-          'requires/jquery.js'
-          configs.depends[1]
-          configs.depends[2]
-          'requires/jasmine.js'
-          'requires/jquery-test-suite.js'
-          'src/foo.js'
-          'src/baz.js'
-          'src/bar.js'
-        ]
+      describe 'first step', ->
 
-      it 'loads the configured server', ->
-        expect(args[0].server).toEqual configs.test_server
-
-      it 'loads the configured timeout', ->
-        expect(args[0].timeout).toEqual configs.test_timeout
-
-      it 'loads the correct tests', ->
-        expect(args[0].test).toEqual [
-          'specs/foo_spec.js'
-          'specs/bar_spec.js'
-        ]
-
-      it 'writes the file to the file JsTestDriver.conf in the root', ->
-        expect(args[1]).toEqual process.cwd()+'/JsTestDriver.conf'
-
-      it 'has a callback for after writing the configs', ->
-        expect(args[2] instanceof Function).toBeTruthy()
-
-
-      describe 'if writing the config file fails', ->
-
+        dummyExec = undefined
         beforeEach ->
-          args[2] 'error'
+          dummyExec = ->
+          dummyExec.MULTI = -> ->
+          flow.exec.calls[0].args[0] dummyExec
 
-        it 'should exit with an error code 1', ->
-          expect(exit).toHaveBeenCalled()
-          expect(exit.calls[0].args[0]).toEqual 1
+        it 'dumps the YAML configs', ->
+          expect(yaml.dump).toHaveBeenCalled()
 
-      describe 'after configs have been written', ->
+        it 'loads depends, test_depends, then sources', ->
+          expect(yaml.dump.calls[0].args[0].load).toEqual [
+            'requires/jquery.js'
+            configs.depends[1]
+            configs.depends[2]
+            'requires/jasmine.js'
+            'requires/jquery-test-suite.js'
+            'src/foo.js'
+            'src/baz.js'
+            'src/bar.js'
+          ]
 
-        beforeEach ->
-          args[2]()
+        it 'loads the configured server', ->
+          expect(yaml.dump.calls[0].args[0].server).toEqual configs.test_server
 
-        it 'should exec the test command', ->
-          expect(exec).toHaveBeenCalled()
-          expect(exec.calls[0].args[0]).toEqual pack.testCmd
+        it 'loads the configured timeout', ->
+          expect(yaml.dump.calls[0].args[0].timeout).toEqual configs.test_timeout
 
-        describe 'when test command fails', ->
+        it 'loads the correct tests', ->
+          expect(yaml.dump.calls[0].args[0].test).toEqual [
+            'specs/foo_spec.js'
+            'specs/bar_spec.js'
+          ]
+
+        it 'writes the file to the file JsTestDriver.conf in the root', ->
+          expect(yaml.dump.calls[0].args[1]).toEqual process.cwd()+'/JsTestDriver.conf'
+
+
+        describe 'if writing the config file fails', ->
 
           beforeEach ->
-            exec.calls[0].args[1] code: 127
+            flow.exec.calls[0].args[1].apply dummyExec, ['error']
 
-          it 'should clean', ->
-            expect(fs.unlink).toHaveBeenCalled()
-            expect(fs.unlink.calls.length).toEqual 3
+          it 'should exit with an error code 1', ->
+            expect(pack.exitCode).toEqual 1
+          describe 'after configs have been written', ->
 
-          it 'should exit with the given error code', ->
-            expect(exit).toHaveBeenCalled()
-            expect(exit.calls[0].args[0]).toEqual 127
+            beforeEach ->
+              flow.exec.calls[0].args[1].apply dummyExec, []
 
-        describe 'when test command passes', ->
-          beforeEach ->
-            exec.calls[0].args[1]()
+            it 'should exec the test command', ->
+              expect(exec).toHaveBeenCalled()
+              expect(exec.calls[0].args[0]).toEqual pack.testCmd
 
-          it 'should clean', ->
-            expect(fs.unlink).toHaveBeenCalled()
-            expect(fs.unlink.calls.length).toEqual 3
+            describe 'when test command fails', ->
 
-          it 'should exit with a code of 0', ->
-            expect(exit).toHaveBeenCalled()
-            expect(exit.calls[0].args[0]).toEqual 0
+              beforeEach ->
+                flow.exec.calls[0].args[2].apply dummyExec, [127]
+                flow.exec.calls[0].args[3].apply dummyExec, []
+              it 'should clean', ->
+                expect(fs.unlink).toHaveBeenCalled()
+                expect(fs.unlink.calls.length).toEqual 3
+
+              it 'should exit with the provided error code', ->
+                expect(pack.exitCode).toEqual 127
+
+            describe 'when test command passes', ->
+              beforeEach ->
+                flow.exec.calls[0].args[2].apply dummyExec, []
+                flow.exec.calls[0].args[3].apply dummyExec, []
+
+              it 'should clean', ->
+                expect(fs.unlink).toHaveBeenCalled()
+                expect(fs.unlink.calls.length).toEqual 3
+
+              it 'should exit with a code of 0', ->
+                expect(pack.exitCode).toEqual 0
 
     describe 'building', ->
 
@@ -295,8 +300,7 @@ describe 'Package', ->
           flow.exec.calls[0].args[1].apply dummyExec
 
         it 'should error out', ->
-          expect(exit).toHaveBeenCalled()
-          expect(exit.calls[0].args[0]).toEqual 1
+          expect(pack.exitCode).toEqual 1
 
       describe 'second flow action', ->
 
@@ -317,13 +321,11 @@ describe 'Package', ->
             flow.exec.calls[0].args[2].apply dummyExec
 
           it 'should exit with a 0', ->
-            expect(exit).toHaveBeenCalled()
-            expect(exit.calls[0].args[0]).toEqual 0
+            expect(pack.exitCode).toEqual 0
 
         describe 'when writing fails', ->
           beforeEach ->
             flow.exec.calls[0].args[2].apply dummyExec, ['Error']
 
           it 'should exit with a 1', ->
-            expect(exit).toHaveBeenCalled()
-            expect(exit.calls[0].args[0]).toEqual 1
+            expect(pack.exitCode).toEqual 1

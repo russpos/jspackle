@@ -25,6 +25,8 @@ defaults =
 ###
 class Package
 
+  exitCode: 0
+
   ###
   Load any methods or libraries that interact with the outside
     system as properties on this class. Allows for them to be easily
@@ -36,7 +38,17 @@ class Package
   exec:    require('child_process').exec
   readDir: require './readdir'
   yaml:    require 'pyyaml'
-  exit:    (code)-> process.nextTick process.exit code
+  exit:    (code)->
+    logging.info "Setting with status: #{code}"
+    @exitCode = code
+
+
+  ###
+  ###
+  complete: ->
+    process.nextTick =>
+      logging.info "Exiting with code #{@exitCode}"
+      process.exit @exitCode
 
   ###
   @description Use the settings provided in ``opts`` (command line options
@@ -134,6 +146,8 @@ class Package
     # the ordered sources with new lines and write the output
     # to our build file.
     processSources = ->
+      logging.info "Found #{sources.length} source file"
+      logging.info "Writing processed sources to: '#{_this.opts.build_output}'"
       _this.fs.writeFile _this.opts.root+_this.opts.build_output, sources.join "\n", this
 
     # End the program, returning the correct error code based on if
@@ -141,7 +155,10 @@ class Package
     finish = (err)->
       _this.exit if err then 1 else 0
 
-    @flow.exec loadSources, processSources, finish
+    complete = ->
+      _this.complete()
+
+    @flow.exec loadSources, processSources, finish, complete
 
 
 
@@ -156,21 +173,33 @@ class Package
   @memberOf Package.prototype
   ###
   test: ->
-    try
-      @_createJsTestDriverFile (err)=>
-        if err
-          return @error err
-        @_executeTests (code)=>
-          if err
-            return @error err
-          @clean()
-          if code
-            logging.critical 'An error occurred while running tests'
-          @exit code
-    catch e
-      @error e
-      logging.warn e
-      @exit 1
+    cancel = false
+    _this = this
+
+    # Create the test driver conf file
+    createFile = ->
+      _this._createJsTestDriverFile this
+
+    # Execute tests
+    execute = (err)->
+      cancel = err
+      if cancel
+        _this.exit 1
+        return this()
+      _this._executeTests this
+
+    # Clean up files that were created along the way
+    clean = (err)->
+      logging.info "Returned: #{err}"
+      flow = this
+      cancel = cancel or err
+      _this.clean flow
+      _this.exit if cancel then (parseInt(cancel, 10) or 1) else 0
+
+    complete = ->
+      _this.complete()
+
+    @flow.exec createFile, execute, clean, complete
 
   ###
   @description Cleans up after a task.  Unlinks any temporary files that
@@ -182,10 +211,11 @@ class Package
   @function
   @memberOf Package.prototype
   ###
-  clean: ->
-    @fs.unlink "#{@opts.root}JsTestDriver.conf"
-    @fs.unlink @opts.test_build_source_file
-    @fs.unlink @opts.test_build_test_file
+  clean: (flow)->
+    logging.info "Cleaning up after jspackle run..."
+    @fs.unlink "#{@opts.root}JsTestDriver.conf", flow.MULTI()
+    @fs.unlink @opts.test_build_source_file, flow.MULTI()
+    @fs.unlink @opts.test_build_test_file, flow.MULTI()
 
   ### ------ Private Methods ------- ###
 
