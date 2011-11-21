@@ -1,8 +1,9 @@
 {
     "name" : "jspackle"
-  , "version" : "1.0.0-beta"
+  , "version" : "0.9.9"
   , "author" : "Russ Posluszny <russ@russposluszny.com>"
   , "main" : "lib/index"
+  , "bin"  : { "jspackle" : "bin/jspackle" }
   , "dependencies" : {
       "coffee-script" : "==1.1.2"
     , "commander"  : "==0.2.0"
