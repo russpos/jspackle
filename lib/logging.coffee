@@ -29,7 +29,7 @@ critical = (msg)->
 
 log = (desc, msg, logLevel)->
   return if logLevel < level
-  lines = msg.split "\n"
+  lines = msg.toString().split "\n"
   for line in lines
     if clean
       console.log line
