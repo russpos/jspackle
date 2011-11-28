@@ -7,7 +7,7 @@
   , "engines": { "node":">= 0.4.0 < 0.7.0" }
   , "dependencies" : {
       "coffee-script" : "1.1.2"
-    , "commander"  : "0.2.0"
+    , "commander"  : ">= 0.2.0 < 0.4.2"
     , "flow"       : "0.2.2"
     , "underscore" : "1.2.0"
     , "pyyaml"     : "0.0.1"
