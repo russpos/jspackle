@@ -1,14 +1,19 @@
 # jspackle
 
+
 `jspackle` is a tool for continuous integration of client-side JavaScript packages. It allows you to define a package
-in a simple JSON format, and provides mechanisms for executing basic tasks:
+in a simple JSON format, and provides mechanisms for executing basic tasks via a commandline interface.
+
+## Tasks
 
  * `test` - Load dependencies, test dependencies, sources, and auto-discovered tests and execute tests.  Currently
    supports using the [http://code.google.com/p/js-test-driver/](JsTestDriver) framework for easy CIS integration.
+   Makes cross browser TDD for your project a breeze.
 
  * `build` - Combine, compile, and minify sources. Also has built in support for `coffee-script`.
 
- * `serve` - Serve the package in either production or development mode.  This feature is not yet complete.
+ * `serve` - Serve the package in either production or development mode.  Great for testing your
+   project as part of your website.  This feature is not yet complete.
 
 **NOTE:** In order to use this tool, you need to have JsTestDriver installed, and available
 via the command `js-test-driver`
