@@ -11,7 +11,6 @@ defaults =
   test_build_test_file: 'auto-test.js'
   spec_folder: 'specs'
   source_folder: 'src'
-
   build_output: 'output.js'
 
 ###
@@ -255,7 +254,12 @@ Output:
       if src.isHTTP()
         paths.push src
       else
-        compiled.push @coffee.compile @fs.readFileSync(src).toString()
+        try
+          compiled.push @coffee.compile @fs.readFileSync(src).toString()
+        catch e
+          logging.critical "Cannot pase #{src} as valid CoffeeScript!"
+          logging.critical e
+          throw e
     @fs.writeFileSync path, compiled.join "\n"
     paths.push path
     return paths
