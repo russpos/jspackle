@@ -26,7 +26,7 @@ program
   .option('-s, --test_server <test_server>', 'Test server', 'http://localhost:9876')
   .option('-t, --test_timeout <test_timeout>', 'Test timeout (in seconds)', 90)
   .option('-a, --test_args <test_args>', 'Additional args to pass to the underlying tester', '')
-  .option('-o, --build_output <build_output>', 'File to write built project', 'output.js')
+  .option('-o, --build_output <build_output>', 'File to write built project')
 
 test = program
   .command('test')
