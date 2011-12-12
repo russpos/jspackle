@@ -129,14 +129,20 @@ Any of the task specific configs can be overridden from the commandline.
 
 ## Jspackle Connect middleware
 
-This piece of a middleware is recommended for development usage only.  For
-production deployed systems, combine your pacakge using `jspackle build` and
+This piece of middleware is recommended for development usage only.  For
+production deployed systems, combine your package using `jspackle build` and
 serve statically.
 
 The connect middleware creates a request handler that will handle all requests that
-start with the given `urlPath`, based on the package defined by the jspackle config
+start with the given `urlPath`, based on the package defined by the Jspackle config
 file described in `confPath`. Usage:
 
+### jspackle.connect(`confPath`, `urlPath`)
+
+Example:
+
+   var connect = require('connect'),
+       jspackle = require('jspackle');
    connect.createServer(jspackle.connect('/path/to/jspackle.json', '/js/my_project.js'), ....);
 
 When a request is made to `/js/my_project.js`, Jspackle serves a JavaScript file that
