@@ -127,20 +127,6 @@ Optional configs.  These all have sane default values, but can be tweaked if des
 ### Commandline overrides
 Any of the task specific configs can be overridden from the commandline.
 
-## HTTP Middleware
-While not recommended for production usage, Jspackle ships with connect-compatible middleware
-for serving your package in "development mode".  For example, let's say you have a project
-that, when built, will be compiled to the URL:
-
-   /javascripts/my_project.js
-
-Assuming your app is set-up to serve static files, when your app is in production mode,
-requests to `/javascripts/my_project.js` will behave normally, ideally going to the actual
-concatenated and minified JavaScript file that `jspackle build` will create. However,
-when in development mode, the Jspackle connect middleware intercepts the request and
-instead serves a JavaScript file that synchronously loads all the source files in
-order.
-
 ## Jspackle Connect middleware
 
 This piece of a middleware is recommended for development usage only.  For
