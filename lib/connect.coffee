@@ -67,11 +67,14 @@ serveCoffeeScript = (res, source)->
 Loads the source at the given path.
 ###
 loadSource = (pack, source, res)->
-  fs.readFile path.join(pack.opts.root, pack.opts.source_folder, source), (err, data)->
-    return error err, res if err
-    data = data.toString()
-    serve = if source.match new RegExp '\.coffee$' then serveCoffeeScript else serveJavaScript
-    serve res, data
+  try
+    fs.readFile path.join(pack.opts.root, pack.opts.source_folder, source), (err, data)->
+      return error err, res if err
+      data = data.toString()
+      serve = if source.match new RegExp '\.coffee$' then serveCoffeeScript else serveJavaScript
+      serve res, data
+  catch e
+    error e, res
 
 ###
 A function generator:
