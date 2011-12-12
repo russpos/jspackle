@@ -1,6 +1,6 @@
 {
     "name" : "jspackle"
-  , "version" : "1.0.5-beta3"
+  , "version" : "1.0.5"
   , "author" : "Russ Posluszny <russ@russposluszny.com>"
   , "main" : "lib/index"
   , "bin"  : { "jspackle" : "bin/jspackle" }
