@@ -127,3 +127,65 @@ Optional configs.  These all have sane default values, but can be tweaked if des
 ### Commandline overrides
 Any of the task specific configs can be overridden from the commandline.
 
+## HTTP Middleware
+While not recommended for production usage, Jspackle ships with connect-compatible middleware
+for serving your package in "development mode".  For example, let's say you have a project
+that, when built, will be compiled to the URL:
+
+   /javascripts/my_project.js
+
+Assuming your app is set-up to serve static files, when your app is in production mode,
+requests to `/javascripts/my_project.js` will behave normally, ideally going to the actual
+concatenated and minified JavaScript file that `jspackle build` will create. However,
+when in development mode, the Jspackle connect middleware intercepts the request and
+instead serves a JavaScript file that synchronously loads all the source files in
+order.
+
+## Jspackle Connect middleware
+
+This piece of a middleware is recommended for development usage only.  For
+production deployed systems, combine your pacakge using `jspackle build` and
+serve statically.
+
+The connect middleware creates a request handler that will handle all requests that
+start with the given `urlPath`, based on the package defined by the jspackle config
+file described in `confPath`. Usage:
+
+   connect.createServer(jspackle.connect('/path/to/jspackle.json', '/js/my_project.js'), ....);
+
+When a request is made to `/js/my_project.js`, Jspackle serves a JavaScript file that
+synchronously loads all of the source files described in `/path/to/jspackle.json`:
+
+    GET: `/js/my_project.js/foo.js`
+    GET: `/js/my_project.js/bar.js`
+
+These requests are also caught by the jspackle middleware, which finds the source
+files based on the package configs, reads the given source file off of disc, and then
+serves it to the browser.  It also handles CoffeeScript files right out of the box.
+Sources that end with `.coffee` will be compiled in real-time in memory by the jspackle
+middleware and served back to the browser as JavaScript.
+
+Here's a full example using the Express framework:
+
+    var jspackle = require('jspackle'),
+        express  = require('express');
+
+    app = express.createServer();
+
+    // The rest of your app
+    ...
+
+    app.configure('development', function() {
+      app.use(jspackle.connect('/path/to/jspackle.json', '/javascripts/my_project.js'));
+    });
+
+    // App configuration
+    ...
+
+    app.listen(8000);
+
+Assuming your app is set up to serve static files, when your app is in production mode,
+requests to `/javascripts/my_project.js` will behave normally, ideally going to the actual
+concatenated and minified JavaScript file that `jspackle build` will create. However,
+when in development mode, the Jspackle connect middleware intercepts the request and
+instead serves the JavaScript needed to load all the sources individually.
