@@ -137,7 +137,7 @@ The connect middleware creates a request handler that will handle all requests t
 start with the given `urlPath`, based on the package defined by the Jspackle config
 file described in `confPath`. Usage:
 
-### jspackle.connect(`confPath`, `urlPath`)
+   jspackle.connect(confPath, urlPath)
 
 Example:
 
