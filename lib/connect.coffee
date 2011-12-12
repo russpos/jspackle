@@ -94,9 +94,10 @@ module.exports = (confPath, urlPath)->
   main = ejs.render template, configs
 
   (req, res, next)->
-    if req.url is urlPath
+    url = req.url.split('?')[0]
+    if url is urlPath
       serveJavaScript res, main
-    else if req.url.match new RegExp "^#{urlPath}"
-      loadSource p, req.url.replace(urlPath, ''), res
+    else if url.match new RegExp "^#{urlPath}"
+      loadSource p, url.replace(urlPath, ''), res
     else
       next()

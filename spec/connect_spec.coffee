@@ -137,3 +137,21 @@ describe 'connect', ->
             eval res.end.calls[0].args[0]
             expect(h[0]).toEqual 1000
 
+      describe 'request matches a file with querystring', ->
+        h = undefined
+        beforeEach ->
+          h = []
+          req.url = '/javascripts/project_name.js/baz.coffee?version=1.0.3'
+          handler req, res, next
+
+        it 'should send a JavaScript result', ->
+          waits 10
+          runs ->
+            expect(res.statusCode).toEqual 200
+            expect(res.setHeader).toHaveBeenCalled()
+            expect(res.setHeader.calls.length).toEqual 1
+            expect(res.setHeader.calls[0].args[0]).toEqual 'Content-type'
+            expect(res.setHeader.calls[0].args[1]).toEqual 'text/javascript'
+            expect(res.end).toHaveBeenCalled()
+            eval res.end.calls[0].args[0]
+            expect(h[0]).toEqual 1000
