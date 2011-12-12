@@ -137,13 +137,13 @@ The connect middleware creates a request handler that will handle all requests t
 start with the given `urlPath`, based on the package defined by the Jspackle config
 file described in `confPath`. Usage:
 
-   jspackle.connect(confPath, urlPath)
+    jspackle.connect(confPath, urlPath)
 
 Example:
 
-   var connect = require('connect'),
-       jspackle = require('jspackle');
-   connect.createServer(jspackle.connect('/path/to/jspackle.json', '/js/my_project.js'), ....);
+    var connect = require('connect'),
+        jspackle = require('jspackle');
+    connect.createServer(jspackle.connect('/path/to/jspackle.json', '/js/my_project.js'), ....);
 
 When a request is made to `/js/my_project.js`, Jspackle serves a JavaScript file that
 synchronously loads all of the source files described in `/path/to/jspackle.json`:
