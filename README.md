@@ -10,7 +10,8 @@ in a simple JSON format, and provides mechanisms for executing basic tasks via a
    supports using the [http://code.google.com/p/js-test-driver/](JsTestDriver) framework for easy CIS integration.
    Makes cross browser TDD for your project a breeze.
 
- * `build` - Combine, compile, and minify sources. Also has built in support for `coffee-script`.
+ * `build` - Combine, compile, and minify sources. Also has built in support for `coffee-script`.  Uses `uglify-js`
+  as its parser.
 
  * `serve` - Serve the package in either production or development mode.  Great for testing your
    project as part of your website.  This feature is not yet complete.
@@ -52,7 +53,7 @@ Assuming you have a project with this structure:
 You can then simple run `jspackle test` to execute our tests:
 
     $ jspackle test
-    jspackle v1.0.2
+    jspackle v1.0.4
 
     % info    | Executing command: 'test'
     % info    | Executing 2 specs
@@ -73,7 +74,7 @@ You can then simple run `jspackle test` to execute our tests:
 When you are ready to distribute your multifile application, simply run `build`:
 
     $ jspackle build
-    jspackle v1.0.2
+    jspackle v1.0.4
 
     % info    | Executing command: 'build'
     % info    | Found 2 source file
@@ -94,21 +95,22 @@ that you can specify when configuring your project:
 
 Optional configs.  These all have sane default values, but can be tweaked if desired:
 
- * `coffee`         - [False] Is this project written in CoffeeScript? Any truthy value will
+ * `coffee`         - (False) Is this project written in CoffeeScript? Any truthy value will
     flip jspackle to run in CoffeeScript mode
- * `depends_folder` - ["requires"] Folder that contains dependencies in order for the
+ * `depends_folder` - ("requires") Folder that contains dependencies in order for the
     tests to run
- * `source_folder`  - ["src"] Folder that contains your application source
- * `spec_folder`    - ["specs"] Folder where your tests are located.  Since the order that
+ * `source_folder`  - ("src") Folder that contains your application source
+ * `spec_folder`    - ("specs") Folder where your tests are located.  Since the order that
     your tests run in should not matter, tests are autodiscovered, rather than forcing you
     to manually specify them.
 
 ### Build task configs:
- * `build_output`   - ["output.js"] File name to use when executing `build` task
+ * `minify`         - (False) Should the output be minified? (uses uglify-js)
+ * `build_output`   - ("output.js") File name to use when executing `build` task
 
 ### Test task configs:
- * `test_server`    - ["http://localhost:9876"] JsTestDriver server to use for testing
- * `test_timeout`   - [90] Timeout setting (in seconds)
+ * `test_server`    - ("http://localhost:9876") JsTestDriver server to use for testing
+ * `test_timeout`   - (90) Timeout setting (in seconds)
  * `test_args`      - Additional arguments to pass to the underlying tester
 
 ## Commandine options
@@ -119,8 +121,8 @@ Optional configs.  These all have sane default values, but can be tweaked if des
  * `-v, --verbose`   - Include debugging information in the output
  * `-q, --quiet`     - Only print critical errors to the screen
  * `-n, --no-color`  - Disable colors in the output.
- * `-p, --path`      - ["jspackle.json"] Path of the config file.  You probably don't want
-    to change this.
+ * `-p, --path`      - ("jspackle.json") Path of the config file.  You probably don't want
+    to change this, but could be useful in certain scenarios.
 
 ### Commandline overrides
 Any of the task specific configs can be overridden from the commandline.

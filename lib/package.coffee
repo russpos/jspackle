@@ -6,6 +6,7 @@ defaults =
   depends: []
   test_depends: []
   sources: []
+  minify: false
   depends_folder: 'requires'
   test_build_source_file: 'auto-source.js'
   test_build_test_file: 'auto-test.js'
@@ -36,6 +37,7 @@ class Package
   coffee:  require 'coffee-script'
   exec:    require('child_process').exec
   readDir: require './readdir'
+  uglify:  require 'uglify-js'
   yaml:    require 'pyyaml'
   exit:    (code)->
     @exitCode = code
@@ -145,7 +147,10 @@ class Package
     processSources = ->
       logging.info "Found #{sources.length} source file"
       logging.info "Writing processed sources to: '#{_this.opts.build_output}'"
-      _this.fs.writeFile _this.opts.root+_this.opts.build_output, sources.join "\n", this
+      output = sources.join "\n"
+      if _this.opts.minify
+        output = _this.minify output
+      _this.fs.writeFile _this.opts.root+_this.opts.build_output, output, this
 
     # End the program, returning the correct error code based on if
     # writing finished or not.
@@ -212,6 +217,23 @@ class Package
     @fs.unlink "#{@opts.root}JsTestDriver.conf", flow.MULTI()
     @fs.unlink @opts.test_build_source_file, flow.MULTI()
     @fs.unlink @opts.test_build_test_file, flow.MULTI()
+
+  ###
+  @description Minifies the source provided to it.
+
+  @params  {String} source JavaScript source to be minified
+  @returns {String} Minified JavaScript source
+
+  @public
+  @function
+  @memberOf Package.prototype
+  ###
+  minify: (source)->
+    logging.info "Minifying JavaScript source..."
+    tokens = @uglify.parser.parse source
+    tokens = @uglify.uglify.ast_mangle tokens
+    tokens = @uglify.uglify.ast_squeeze tokens
+    @uglify.uglify.gen_code tokens
 
   ### ------ Private Methods ------- ###
 

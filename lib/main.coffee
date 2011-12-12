@@ -20,6 +20,7 @@ program
   .option('-v, --verbose', 'Include debugging information in the output')
   .option('-q, --quiet', 'Only print critical errors to the screen')
   .option('-n, --no-color', 'Disable colors in the output')
+  .option('-m, --minify', 'Minify the build (uses uglify-js)')
   .option('-c, --coffee', 'Look for and compile coffee-script files')
   .option('-r, --root <root>', 'The of the project', process.cwd()+'/')
   .option('-p, --path <path>', 'Path of the config file, relative to root', 'jspackle.json')

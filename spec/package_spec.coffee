@@ -3,8 +3,9 @@ logging = require '../lib/logging'
 
 describe 'Package', ->
 
-  readDir = coffee = compiled = configs = cmd = flow = opts = exec = yaml = exit = pack = fs = undefined
+  ast = readDir = coffee = compiled = configs = cmd = flow = minify = opts = exec = uglify = yaml = exit = pack = fs = undefined
   beforeEach ->
+    ast = {}
     configs =
       first: 'z'
       third: 'c'
@@ -31,6 +32,14 @@ describe 'Package', ->
     cmd =
       second: 'x'
 
+    uglify =
+      parser:
+        parse:       jasmine.createSpy "uglify.parser.parse"
+      uglify:
+        ast_mangle:  jasmine.createSpy "uglify.uglify.ast_mangle"
+        ast_squeeze: jasmine.createSpy "uglify.uglify.ast_squeeze"
+        gen_code:    jasmine.createSpy "uglify.uglify.gen_code"
+
 
     # Stub logs
     logging.critical = jasmine.createSpy "logging.critical"
@@ -41,6 +50,8 @@ describe 'Package', ->
 
     yaml =
       dump: jasmine.createSpy "yaml.dump"
+
+    minify = jasmine.createSpy "minify"
 
     # Stub fs module
     fs =
@@ -304,28 +315,109 @@ describe 'Package', ->
 
       describe 'second flow action', ->
 
+        processExec = output = undefined
         beforeEach ->
-          flow.exec.calls[0].args[0].apply dummyExec
-          for index, call of fs.readFile.calls
-            call.args[1] null, index+1
-          flow.exec.calls[0].args[1].apply dummyExec
+          pack.minify = (str)->
+            minify str
+            str
+          processExec = (f, fs, exec)->
+            ###
+            Stubs out the asynchronous file reads to our source files.
+            For each fs.readFile call, execute its callback as if it loaded
+            the a single line, setting a single letter variable to the string
+            of the name of the file, eg:
 
-        it 'should write the contents', ->
-          expect(fs.writeFile).toHaveBeenCalled()
-          expect(fs.writeFile.calls.length).toEqual 1
-          expect(fs.writeFile.calls[0].args[0]).toEqual process.cwd()+'/output.js'
-          expect(fs.writeFile.calls[0].args[1]).toEqual "01\n11\n21"
+            a = '/home/you/src/foo.js';
 
-        describe 'when writing succeeds', ->
+            Execute the multistep callback so that all the flow actions are
+            registered as complete, then return the concatenated sources.
+            ###
+            letters = ['a', 'b', 'c']
+            f.exec.calls[0].args[0].apply exec
+            lines = []
+            for index, call of fs.readFile.calls
+              text = "#{letters[index]} = '#{call.args[0]}';"
+              lines[index] = text
+              call.args[1] null, text
+            f.exec.calls[0].args[1].apply exec
+            lines.join "\n"
+
+        describe 'when minification is on', ->
+
           beforeEach ->
-            flow.exec.calls[0].args[2].apply dummyExec
+            pack.opts.minify = on
+            output = processExec flow, fs, dummyExec
 
-          it 'should exit with a 0', ->
-            expect(pack.exitCode).toEqual 0
+          it 'should pass the data through the minifier', ->
+            expect(minify).toHaveBeenCalled()
+            expect(minify.calls[0].args[0]).toEqual output
 
-        describe 'when writing fails', ->
+        describe 'when minification is off', ->
+
+          output = undefined
           beforeEach ->
-            flow.exec.calls[0].args[2].apply dummyExec, ['Error']
+            pack.opts.minify = off
+            output = processExec flow, fs, dummyExec
 
-          it 'should exit with a 1', ->
-            expect(pack.exitCode).toEqual 1
+          it 'should write the contents', ->
+            expect(fs.writeFile).toHaveBeenCalled()
+            expect(fs.writeFile.calls.length).toEqual 1
+            expect(fs.writeFile.calls[0].args[0]).toEqual process.cwd()+'/output.js'
+            expect(fs.writeFile.calls[0].args[1]).toEqual output
+
+          describe 'when writing succeeds', ->
+            beforeEach ->
+              flow.exec.calls[0].args[2].apply dummyExec
+
+            it 'should exit with a 0', ->
+              expect(pack.exitCode).toEqual 0
+
+          describe 'when writing fails', ->
+            beforeEach ->
+              flow.exec.calls[0].args[2].apply dummyExec, ['Error']
+
+            it 'should exit with a 1', ->
+              expect(pack.exitCode).toEqual 1
+
+
+    describe 'Package.minify', ->
+
+      source = minified = evalAndAssert = undefined
+      beforeEach ->
+        source = "var a = 'bar';\nvar b = {};\nvar c = { foo: b };"
+        evalAndAssert = (src, expect)->
+          eval src
+          expect(a).toEqual 'bar'
+          expect(b).toEqual {}
+          expect(c.foo).toBe b
+
+      describe 'with stubs', ->
+
+        beforeEach ->
+          pack.uglify = uglify
+          minified = pack.minify source
+
+        it 'should parse the source', ->
+          expect(uglify.parser.parse).toHaveBeenCalled()
+          expect(uglify.parser.parse.calls[0].args[0]).toEqual source
+
+        it 'should mangle the tokens', ->
+          expect(uglify.uglify.ast_mangle).toHaveBeenCalled()
+
+        it 'should squeeze the mangled tokens', ->
+          expect(uglify.uglify.ast_squeeze).toHaveBeenCalled()
+
+        it 'should generate code from the mangled, squeezed tokens', ->
+          expect(uglify.uglify.gen_code).toHaveBeenCalled()
+
+      describe 'without stubs', ->
+
+        beforeEach ->
+          minified = pack.minify source
+
+        it 'should be condensed to one line', ->
+          expect(minified.split("\n").length).toEqual 1
+
+        it 'should evaluate to the same code', ->
+          evalAndAssert source, expect
+          evalAndAssert minified, expect
