@@ -15,7 +15,6 @@ module.exports = ->
   jspackle (build|test)
   """
 
-
   program
     .version(version)
     .option('-v, --verbose', 'Include debugging information in the output')
@@ -29,6 +28,7 @@ module.exports = ->
     .option('-t, --test_timeout <test_timeout>', 'Test timeout (in seconds)', 90)
     .option('-a, --test_args <test_args>', 'Additional args to pass to the underlying tester', '')
     .option('-o, --build_output <build_output>', 'File to write built project')
+    .option('-d, --include_depends', 'Should the dependencies be included in the build?')
 
   test = program
     .command('test')

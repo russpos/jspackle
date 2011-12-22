@@ -7,6 +7,7 @@ defaults =
   test_depends: []
   sources: []
   minify: false
+  include_depends: false
   depends_folder: 'requires'
   test_build_source_file: 'auto-source.js'
   test_build_test_file: 'auto-test.js'
@@ -32,10 +33,11 @@ class Package
     system as properties on this class. Allows for them to be easily
     stubbed in our specs so that it can be tested in complete isolation.
   ###
-  flow:    require 'flow'
-  fs:      require 'fs'
   coffee:  require 'coffee-script'
   exec:    require('child_process').exec
+  flow:    require 'flow'
+  fs:      require 'fs'
+  restler: require 'restler'
   readDir: require './readdir'
   uglify:  require 'uglify-js'
   yaml:    require 'pyyaml'
@@ -124,7 +126,11 @@ class Package
     # flow command
     loadSources = ->
       flow = this
-      for index, src of _this.sources
+      sources = []
+      if _this.opts.include_depends
+        sources = sources.concat _this.depends
+      sources = sources.concat _this.sources
+      for index, src of sources
 
         # Execute in a closure so that i is local to this
         # loop, so that it doesn't change by the time our
@@ -133,12 +139,20 @@ class Package
           i = index
           registered = flow.MULTI()
 
-          # Read the file, cache the source, and mark this portion of
-          # the multi-step as complete
-          _this.fs.readFile _this.opts.root+src, (err, src)->
-            return _this.error err if err
-            sources[i] = src
-            registered()
+          if src.isHTTP()
+            _this.httpGet src, (script)->
+              sources[i] = script
+              registered()
+
+          else
+
+            # Read the file, cache the source, and mark this portion of
+            # the multi-step as complete
+            _this.fs.readFile _this.opts.root+src, (err, script)->
+              return _this.error err if err
+              sources[i] = script
+              registered()
+
 
     # Once all our registered multi-steps have completed, join
     # the ordered sources with new lines and write the output
@@ -233,6 +247,24 @@ class Package
     tokens = @uglify.uglify.ast_mangle tokens
     tokens = @uglify.uglify.ast_squeeze tokens
     @uglify.uglify.gen_code tokens
+
+  ###
+  @description Gets the given URL, and passes the response to
+  the callback function. If an error occurs, the process exits
+  with code 1
+
+  @params {String} url URL of the get request
+  @params {Function} callback Callback function to be executed on
+    complete
+
+  @public
+  @function
+  @memberOf Package.prototype
+  ###
+  httpGet: (url, callback)->
+    resp = @restler.get url
+    resp.on 'complete', callback
+    resp.on 'error', => @error "ERROR: Cannot get #{url}"
 
   ### ------ Private Methods ------- ###
 

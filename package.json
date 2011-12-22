@@ -10,6 +10,7 @@
     , "commander"  : ">= 0.2.0 < 0.4.2"
     , "flow"       : "0.2.2"
     , "ejs"        : "0.6.1"
+    , "restler"    : "0.2.3"
     , "underscore" : "1.2.0"
     , "uglify-js"  : "1.2.0"
     , "pyyaml"     : "0.0.1"
