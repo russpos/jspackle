@@ -3,6 +3,9 @@ logging = require '../lib/logging'
 
 describe 'Package', ->
 
+  ###
+  Stub out anything u/o related
+  ###
   ast = readDir = coffee = compiled = configs = cmd = flow = minify = opts = exec = uglify = yaml = exit = pack = fs = undefined
   beforeEach ->
     ast = {}
@@ -352,6 +355,20 @@ describe 'Package', ->
             expect(minify).toHaveBeenCalled()
             expect(minify.calls[0].args[0]).toEqual output
 
+        describe 'when using a templated file path', ->
+
+          output = undefined
+          beforeEach ->
+            pack.opts.name = 'russ'
+            pack.opts.version = '2.0'
+            pack.opts.build_output = "{{name}}.{{version}}.js"
+            output = processExec flow, fs, dummyExec
+
+          it 'should write the contents', ->
+            expect(fs.writeFile).toHaveBeenCalled()
+            expect(fs.writeFile.calls.length).toEqual 1
+            expect(fs.writeFile.calls[0].args[0]).toEqual process.cwd()+'/russ.2.0.js'
+
         describe 'when minification is off', ->
 
           output = undefined
@@ -379,6 +396,9 @@ describe 'Package', ->
             it 'should exit with a 1', ->
               expect(pack.exitCode).toEqual 1
 
+    ###
+    Serve - start an HTTP server
+    ###
 
     describe 'Package.minify', ->
 

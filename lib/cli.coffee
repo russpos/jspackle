@@ -1,6 +1,7 @@
 program = require 'commander'
 logging = require './logging'
 fs      = require 'fs'
+_       = require 'underscore'
 
 module.exports = ->
   Package = require './package'
@@ -15,7 +16,7 @@ module.exports = ->
   jspackle (build|test)
   """
 
-
+  opts = {}
   program
     .version(version)
     .option('-v, --verbose', 'Include debugging information in the output')
@@ -36,7 +37,7 @@ module.exports = ->
     .action (env)->
       task = ->
         logging.info "Executing command: 'test'"
-        p = new Package program, test
+        p = new Package opts
         p.test()
 
   build = program
@@ -45,15 +46,20 @@ module.exports = ->
     .action (env)->
       task = ->
         logging.info "Executing command: 'build'"
-        p = new Package program, build
+        p = new Package opts
         p.build()
 
 
   program.parse process.argv
+  if program.opts
+    for opt, val of program.opts
+      if val then opts[opt] = val 
+  else
+    opts = program
+
   logging.setColor program.color
   if program.verbose
     logging.setLevel 'debug'
-
   if program.quiet
     logging.setClean true
     logging.setLevel 'critical'
