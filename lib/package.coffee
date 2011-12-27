@@ -1,5 +1,6 @@
 _       = require 'underscore'
 logging = require './logging'
+pathLib = require 'path'
 require './string'
 
 defaults =
@@ -158,12 +159,13 @@ class Package
     # the ordered sources with new lines and write the output
     # to our build file.
     processSources = ->
+      outputFile = _this._generateOutputPath()
       logging.info "Found #{sources.length} source file"
-      logging.info "Writing processed sources to: '#{_this.opts.build_output}'"
+      logging.info "Writing processed sources to: '#{outputFile}'"
       output = sources.join "\n"
       if _this.opts.minify
         output = _this.minify output
-      _this.fs.writeFile _this.opts.root+_this.opts.build_output, output, this
+      _this.fs.writeFile outputFile, output, this
 
     # End the program, returning the correct error code based on if
     # writing finished or not.
@@ -174,8 +176,6 @@ class Package
       _this.complete()
 
     @flow.exec loadSources, processSources, finish, complete
-
-
 
   ###
   @description The ``test`` task.  Create test config file, execute
@@ -325,6 +325,17 @@ Output:
         logging.debug "Discovered test: '#{file}'"
         tests.push(file.replace(@opts.root+@opts.spec_folder+'/', ''))
     tests
+
+  ###
+  Generate the output path from our options, and template variables
+  ###
+  _generateOutputPath: ->
+    filePath = pathLib.join @opts.root, @opts.build_output
+    #console.log @opts
+    for variable in ['name', 'version']
+      re = new RegExp "{{#{variable}}}", 'g'
+      filePath = filePath.replace re, @opts[variable]
+    return filePath
 
   _process: (option, folder, compile=false)->
     root = folder+'/'

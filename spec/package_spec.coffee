@@ -7,11 +7,11 @@ filesys = require 'fs'
 test = (file)->
   cs.compile filesys.readFileSync(path.join __dirname, file+'.coffee').toString()
 
-
-
-
 describe 'Package', ->
 
+  ###
+  Stub out anything u/o related
+  ###
   ast = readDir = coffee = compiled = configs = cmd = flow = minify = opts = exec = uglify = yaml = exit = pack = fs = undefined
   beforeEach ->
     ast = {}
@@ -160,3 +160,4 @@ describe 'Package', ->
     eval test 'build_depends'
     eval test 'minify'
     eval test 'get'
+
