@@ -1,16 +1,6 @@
 describe 'httpGet', ->
 
-  response = restler = response = undefined
   beforeEach ->
-    response =
-      on: jasmine.createSpy 'response'
-    restler =
-      get: jasmine.createSpy 'restler.get'
-    pack.restler =
-      get: (url, callback)->
-        restler.get url, callback
-        response
-
     pack.httpGet 'http://www.google.com', response
 
   it 'should call restler.get', ->

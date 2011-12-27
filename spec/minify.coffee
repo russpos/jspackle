@@ -12,7 +12,6 @@ describe 'Package.minify', ->
   describe 'with stubs', ->
 
     beforeEach ->
-      pack.uglify = uglify
       minified = pack.minify source
 
     it 'should parse the source', ->
@@ -27,15 +26,3 @@ describe 'Package.minify', ->
 
     it 'should generate code from the mangled, squeezed tokens', ->
       expect(uglify.uglify.gen_code).toHaveBeenCalled()
-
-  describe 'without stubs', ->
-
-    beforeEach ->
-      minified = pack.minify source
-
-    it 'should be condensed to one line', ->
-      expect(minified.split("\n").length).toEqual 1
-
-    it 'should evaluate to the same code', ->
-      evalAndAssert source, expect
-      evalAndAssert minified, expect

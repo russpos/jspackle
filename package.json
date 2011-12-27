@@ -15,6 +15,9 @@
     , "uglify-js"  : "1.2.0"
     , "pyyaml"     : "0.0.1"
   },
+  "devDependencies" : {
+      "stubble" : "0.1.0"
+  },
   "scripts" : {
     "test": "jasmine-node --coffee ./spec"
   }

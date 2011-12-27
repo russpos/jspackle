@@ -1,8 +1,28 @@
 _       = require 'underscore'
 logging = require './logging'
 pathLib = require 'path'
-require './string'
 
+String::isHTTP = ->
+  @substring(0, 7) == 'http://' or @substring(0, 8) == 'https://'
+
+String::isScript = ->
+  this.substring(this.length-2) is 'js' or this.substring(this.length-6) is 'coffee'
+
+###
+Load any methods or libraries that interact with the outside
+  system.  In the tests, these should all be mocked out via stubble
+###
+coffee =  require 'coffee-script'
+exec =    require('child_process').exec
+flow =    require 'flow'
+fs =      require 'fs'
+restler = require 'restler'
+readDir = require './readdir'
+uglify =  require 'uglify-js'
+yaml =    require 'pyyaml'
+
+
+# Default configs values
 defaults =
   depends: []
   test_depends: []
@@ -29,19 +49,6 @@ class Package
 
   exitCode: 0
 
-  ###
-  Load any methods or libraries that interact with the outside
-    system as properties on this class. Allows for them to be easily
-    stubbed in our specs so that it can be tested in complete isolation.
-  ###
-  coffee:  require 'coffee-script'
-  exec:    require('child_process').exec
-  flow:    require 'flow'
-  fs:      require 'fs'
-  restler: require 'restler'
-  readDir: require './readdir'
-  uglify:  require 'uglify-js'
-  yaml:    require 'pyyaml'
   exit:    (code)->
     @exitCode = code
 
@@ -95,7 +102,7 @@ class Package
     path = opts.root+opts.path
     logging.debug "Parsing jspackle file: #{path}"
     try
-      JSON.parse @fs.readFileSync path
+      JSON.parse fs.readFileSync path
     catch e
       @error "ERROR opening config file '#{path}'"
 
@@ -149,7 +156,7 @@ class Package
 
             # Read the file, cache the source, and mark this portion of
             # the multi-step as complete
-            _this.fs.readFile _this.opts.root+src, (err, script)->
+            fs.readFile _this.opts.root+src, (err, script)->
               return _this.error err if err
               sources[i] = script
               registered()
@@ -165,7 +172,7 @@ class Package
       output = sources.join "\n"
       if _this.opts.minify
         output = _this.minify output
-      _this.fs.writeFile outputFile, output, this
+      fs.writeFile outputFile, output, this
 
     # End the program, returning the correct error code based on if
     # writing finished or not.
@@ -175,7 +182,7 @@ class Package
     complete = ->
       _this.complete()
 
-    @flow.exec loadSources, processSources, finish, complete
+    flow.exec loadSources, processSources, finish, complete
 
   ###
   @description The ``test`` task.  Create test config file, execute
@@ -213,7 +220,7 @@ class Package
     complete = ->
       _this.complete()
 
-    @flow.exec createFile, execute, clean, complete
+    flow.exec createFile, execute, clean, complete
 
   ###
   @description Cleans up after a task.  Unlinks any temporary files that
@@ -227,9 +234,9 @@ class Package
   ###
   clean: (flow)->
     logging.info "Cleaning up after jspackle run..."
-    @fs.unlink "#{@opts.root}JsTestDriver.conf", flow.MULTI()
-    @fs.unlink @opts.test_build_source_file, flow.MULTI()
-    @fs.unlink @opts.test_build_test_file, flow.MULTI()
+    fs.unlink "#{@opts.root}JsTestDriver.conf", flow.MULTI()
+    fs.unlink @opts.test_build_source_file, flow.MULTI()
+    fs.unlink @opts.test_build_test_file, flow.MULTI()
 
   ###
   @description Minifies the source provided to it.
@@ -243,10 +250,10 @@ class Package
   ###
   minify: (source)->
     logging.info "Minifying JavaScript source..."
-    tokens = @uglify.parser.parse source
-    tokens = @uglify.uglify.ast_mangle tokens
-    tokens = @uglify.uglify.ast_squeeze tokens
-    @uglify.uglify.gen_code tokens
+    tokens = uglify.parser.parse source
+    tokens = uglify.uglify.ast_mangle tokens
+    tokens = uglify.uglify.ast_squeeze tokens
+    uglify.uglify.gen_code tokens
 
   ###
   @description Gets the given URL, and passes the response to
@@ -262,7 +269,7 @@ class Package
   @memberOf Package.prototype
   ###
   httpGet: (url, callback)->
-    resp = @restler.get url
+    resp = restler.get url
     resp.on 'complete', callback
     resp.on 'error', => @error "ERROR: Cannot get #{url}"
 
@@ -270,7 +277,7 @@ class Package
 
   _executeTests: (callback)->
     logging.debug "Executing tests: #{@testCmd}"
-    @exec @testCmd, (err, stdout, stderr)->
+    exec @testCmd, (err, stdout, stderr)->
       msg =  """
 
 Output:
@@ -297,7 +304,7 @@ Output:
 
     path = "#{@opts.root}JsTestDriver.conf"
     logging.debug "Dumping configs to: #{path}"
-    @yaml.dump configs, path, callback
+    yaml.dump configs, path, callback
 
   _coffeeCompile: (sources, path)->
     logging.info "Compiling coffee-script to '#{path}'"
@@ -308,17 +315,17 @@ Output:
         paths.push src
       else
         try
-          compiled.push @coffee.compile @fs.readFileSync(src).toString()
+          compiled.push coffee.compile fs.readFileSync(src).toString()
         catch e
           logging.critical "Cannot pase #{src} as valid CoffeeScript!"
           logging.critical e
           throw e
-    @fs.writeFileSync path, compiled.join "\n"
+    fs.writeFileSync path, compiled.join "\n"
     paths.push path
     return paths
 
   _findTests: ->
-    found = @readDir @opts.root+@opts.spec_folder
+    found = readDir @opts.root+@opts.spec_folder
     tests = []
     for file in found.files
       if file.isScript()

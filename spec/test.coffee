@@ -61,8 +61,8 @@ describe 'running tests', ->
           flow.exec.calls[0].args[1].apply dummyExec, []
 
         it 'should exec the test command', ->
-          expect(exec).toHaveBeenCalled()
-          expect(exec.calls[0].args[0]).toEqual pack.testCmd
+          expect(childProcess.exec).toHaveBeenCalled()
+          expect(childProcess.exec.calls[0].args[0]).toEqual pack.testCmd
 
         describe 'when test command fails', ->
 

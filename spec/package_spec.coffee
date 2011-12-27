@@ -1,8 +1,10 @@
-Package = require '../lib/package'
+Stubble = require 'stubble'
 logging = require '../lib/logging'
 path    = require 'path'
 cs      = require 'coffee-script'
 filesys = require 'fs'
+
+Package = undefined
 
 test = (file)->
   cs.compile filesys.readFileSync(path.join __dirname, file+'.coffee').toString()
@@ -12,9 +14,8 @@ describe 'Package', ->
   ###
   Stub out anything u/o related
   ###
-  ast = readDir = coffee = compiled = configs = cmd = flow = minify = opts = exec = uglify = yaml = exit = pack = fs = undefined
+  stub = ast = readDir = restler = response = coffee = childProcess = compiled = configs = cmd = restler = files = flow = minify = opts = uglify = yaml = exit = pack = fs = undefined
   beforeEach ->
-    ast = {}
     configs =
       first: 'z'
       third: 'c'
@@ -27,16 +28,20 @@ describe 'Package', ->
       test_server: 'http://localhost:9876'
       test_timeout: 90
 
-    coffee =
-      compile: jasmine.createSpy "coffee.compile"
-
     compiled = {}
+    coffee =
+      compile: jasmine.createSpy("coffee.compile").andReturn compiled
 
     opts =
       root: process.cwd()+'/'
       path: 'jspackle.json'
       first: 'a'
       second: 'b'
+
+    response =
+      on: jasmine.createSpy 'response'
+    restler =
+      get: jasmine.createSpy('restler.get').andReturn response
 
     cmd =
       second: 'x'
@@ -55,17 +60,19 @@ describe 'Package', ->
     logging.info     = jasmine.createSpy "logging.info"
     logging.warn     = jasmine.createSpy "logging.warn"
 
-    exec = jasmine.createSpy "childProcess.exec"
+
+    childProcess =
+      exec: jasmine.createSpy "childProcess.exec"
 
     yaml =
-      dump: jasmine.createSpy "yaml.dump"
+      dump: jasmine.createSpy("yaml.dump").andReturn true
 
     minify = jasmine.createSpy "minify"
 
     # Stub fs module
     fs =
       readFile:      jasmine.createSpy "fs.readFile"
-      readFileSync:  jasmine.createSpy "fs.readFileSync"
+      readFileSync:  jasmine.createSpy("fs.readFileSync").andReturn JSON.stringify configs
       unlink:        jasmine.createSpy "fs.unlink"
       writeFile:     jasmine.createSpy "fs.writeFile"
       writeFileSync: jasmine.createSpy "fs.writeFileSync"
@@ -76,33 +83,30 @@ describe 'Package', ->
 
     # Stub other things that interact with the process
     exit = jasmine.createSpy "process.exit"
-    readDir = jasmine.createSpy "readDir"
+    readDir = jasmine.createSpy("readDir").andReturn files: [opts.root+'specs/foo_spec.js',
+                                                             opts.root+'specs/image.img',
+                                                             opts.root+'specs/bar_spec.js']
+
+    stubs =
+       fs: fs
+       flow: flow
+       "uglify-js": uglify
+       restler: restler
+       pyyaml: yaml
+       child_process: childProcess
+       "./readdir": readDir
+       "coffee-script" : coffee
+
+    stub = new Stubble stubs
+    Package = stub.require __dirname+'/../lib/package'
 
     Package.prototype.complete = exit
-    Package.prototype.exec = exec
-    Package.prototype.yaml = yaml
-    Package.prototype.flow = flow
-    Package.prototype.readDir = ->
-      readDir.apply this, arguments
-      retVal =
-        files: [opts.root+'specs/foo_spec.js',
-                opts.root+'specs/image.img',
-                opts.root+'specs/bar_spec.js']
-
-    Package.prototype.coffee =
-      compile: ->
-         coffee.compile.apply this, arguments
-         compiled
-
-    Package.prototype.fs =
-      readFile: fs.readFile
-      readFileSync: ->
-        fs.readFileSync.apply this, arguments
-        JSON.stringify configs
-      writeFile: fs.writeFile
-      writeFileSync: ->
-        fs.writeFileSync.apply this, arguments
-      unlink: fs.unlink
+#    Package.prototype.exec = exec
+#    Package.prototype.yaml = yaml
+#    Package.prototype.flow = flow
+#    Package.prototype.readDir = readDir
+#    Package.prototype.coffee = coffee
+#    Package.prototype.fs = fs
 
   describe 'when loading a coffee-script project', ->
 
@@ -134,9 +138,7 @@ describe 'Package', ->
   describe 'when loading configs fails', ->
 
     beforeEach ->
-      Package.prototype.fs.readFileSync = ->
-          fs.readFileSync.apply this, arguments
-          '{"bad_json" : tru'
+      fs.readFileSync = jasmine.createSpy('fs.readFileSync').andReturn '{"bad_json" : tru'
       Package.prototype.readDir = (dir)->
 
       pack = new Package opts, cmd
