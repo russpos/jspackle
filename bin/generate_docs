@@ -1,0 +1,43 @@
+#!/usr/bin/env coffee
+path = require 'path'
+fs   = require 'fs'
+jade = require 'jade'
+_    = require 'underscore'
+md   = require('node-markdown').Markdown
+
+paths =
+  bin:   __dirname
+  root: path.join __dirname, '..'
+  docs: path.join __dirname, '../docs'
+  srcs: path.join __dirname, '../docs/doc_files'
+  jade: path.join __dirname, '../docs/templates'
+
+# Hash to store any variable needed in our template
+locals = {}
+
+# Create a hash of title => html for every doc source file
+docFiles = {}
+sources = fs.readdirSync paths.srcs
+for file in sources.sort()
+  source = fs.readFileSync(path.join(paths.srcs, file)).toString()
+  title = source.split("\n")[0].replace(/#/g, '').trim()
+
+  link  = "<a name=\"#{file}\"><hr /></a>"
+  docFiles[title] =
+    ref: file
+    source: [link, md source].join "\n"
+locals.docs = _(docFiles).chain().values().map((val)-> val.source).value().join "\n"
+
+# Create a table of contents array
+toc = []
+for title, docObj of docFiles
+  toc.push "<li><a href=\"##{docObj.ref}\">#{title}</a></li>"
+locals.toc = "<ul>" + toc.join("\n") + "</ul>"
+
+# Compile the contents of the jade doc files
+layout = fs.readFileSync path.join paths.jade, 'index.jade'
+compiled = jade.compile layout
+
+# Parse the template with our auto-generated docs and toc, and write it to `index.html`
+index = compiled locals
+fs.writeFileSync path.join(paths.root, 'index.html'), index

@@ -16,9 +16,12 @@
     , "pyyaml"     : "0.0.1"
   },
   "devDependencies" : {
+      "jade"    : "0.19.0",
+      "node-markdown" : "0.1.0",
       "stubble" : "0.1.0"
   },
   "scripts" : {
-    "test": "jasmine-node --coffee ./spec"
+    "test": "jasmine-node --coffee ./spec",
+    "docs": "./bin/generate_docs"
   }
 }
