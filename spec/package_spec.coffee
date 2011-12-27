@@ -5,16 +5,17 @@ cs      = require 'coffee-script'
 filesys = require 'fs'
 
 Package = undefined
+stub = ast = readDir = restler = response = coffee = childProcess = compiled = configs = cmd = restler = files = flow = minify = opts = uglify = yaml = exit = pack = fs = undefined
 
-test = (file)->
-  cs.compile filesys.readFileSync(path.join __dirname, file+'.coffee').toString()
+runTest = (file)->
+  eval cs.compile filesys.readFileSync(path.join __dirname, file+'.coffee').toString()
+
 
 describe 'Package', ->
 
   ###
   Stub out anything u/o related
   ###
-  stub = ast = readDir = restler = response = coffee = childProcess = compiled = configs = cmd = restler = files = flow = minify = opts = uglify = yaml = exit = pack = fs = undefined
   beforeEach ->
     configs =
       first: 'z'
@@ -101,12 +102,6 @@ describe 'Package', ->
     Package = stub.require __dirname+'/../lib/package'
 
     Package.prototype.complete = exit
-#    Package.prototype.exec = exec
-#    Package.prototype.yaml = yaml
-#    Package.prototype.flow = flow
-#    Package.prototype.readDir = readDir
-#    Package.prototype.coffee = coffee
-#    Package.prototype.fs = fs
 
   describe 'when loading a coffee-script project', ->
 
@@ -139,7 +134,6 @@ describe 'Package', ->
 
     beforeEach ->
       fs.readFileSync = jasmine.createSpy('fs.readFileSync').andReturn '{"bad_json" : tru'
-      Package.prototype.readDir = (dir)->
 
       pack = new Package opts, cmd
 
@@ -155,11 +149,11 @@ describe 'Package', ->
       expect(fs.readFileSync).toHaveBeenCalled()
       expect(fs.readFileSync.calls[0].args[0]).toEqual process.cwd()+'/jspackle.json'
 
-    eval test 'configs'
-    eval test 'properties'
-    eval test 'test'
-    eval test 'build'
-    eval test 'build_depends'
-    eval test 'minify'
-    eval test 'get'
+    runTest 'configs'
+    runTest 'properties'
+    runTest 'test'
+    runTest 'build'
+    runTest 'build_depends'
+    runTest 'minify'
+    runTest 'get'
 
