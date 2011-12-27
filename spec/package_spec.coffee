@@ -1,22 +1,27 @@
-Stubble = require 'stubble'
-logging = require '../lib/logging'
-path    = require 'path'
-cs      = require 'coffee-script'
-filesys = require 'fs'
+Stubble    = require 'stubble'
+path       = require 'path'
+cs         = require 'coffee-script'
+filesys    = require 'fs'
+specHelper = require './helper'
 
 Package = undefined
-stub = ast = readDir = restler = response = coffee = childProcess = compiled = configs = cmd = restler = files = flow = minify = opts = uglify = yaml = exit = pack = fs = undefined
+stub = runTest = returned = configs = minify = opts = pack = undefined
 
+# Runs a (partial) test file as if it was written inline into this given test
+# suite.
 runTest = (file)->
-  eval cs.compile filesys.readFileSync(path.join __dirname, file+'.coffee').toString()
-
+  filename = path.join __dirname, file+'.coffee'
+  eval cs.compile filesys.readFileSync(filename).toString()
 
 describe 'Package', ->
 
-  ###
-  Stub out anything u/o related
-  ###
   beforeEach ->
+    returned =
+      compiled: {}
+      response:
+        on: jasmine.createSpy 'response'
+
+    minify = jasmine.createSpy "minify"
     configs =
       first: 'z'
       third: 'c'
@@ -29,79 +34,16 @@ describe 'Package', ->
       test_server: 'http://localhost:9876'
       test_timeout: 90
 
-    compiled = {}
-    coffee =
-      compile: jasmine.createSpy("coffee.compile").andReturn compiled
-
     opts =
       root: process.cwd()+'/'
       path: 'jspackle.json'
       first: 'a'
       second: 'b'
 
-    response =
-      on: jasmine.createSpy 'response'
-    restler =
-      get: jasmine.createSpy('restler.get').andReturn response
-
-    cmd =
-      second: 'x'
-
-    uglify =
-      parser:
-        parse:       jasmine.createSpy "uglify.parser.parse"
-      uglify:
-        ast_mangle:  jasmine.createSpy "uglify.uglify.ast_mangle"
-        ast_squeeze: jasmine.createSpy "uglify.uglify.ast_squeeze"
-        gen_code:    jasmine.createSpy "uglify.uglify.gen_code"
-
-
-    # Stub logs
-    logging.critical = jasmine.createSpy "logging.critical"
-    logging.info     = jasmine.createSpy "logging.info"
-    logging.warn     = jasmine.createSpy "logging.warn"
-
-
-    childProcess =
-      exec: jasmine.createSpy "childProcess.exec"
-
-    yaml =
-      dump: jasmine.createSpy("yaml.dump").andReturn true
-
-    minify = jasmine.createSpy "minify"
-
-    # Stub fs module
-    fs =
-      readFile:      jasmine.createSpy "fs.readFile"
-      readFileSync:  jasmine.createSpy("fs.readFileSync").andReturn JSON.stringify configs
-      unlink:        jasmine.createSpy "fs.unlink"
-      writeFile:     jasmine.createSpy "fs.writeFile"
-      writeFileSync: jasmine.createSpy "fs.writeFileSync"
-
-    # Stub flow
-    flow =
-      exec: jasmine.createSpy "flow.exec"
-
-    # Stub other things that interact with the process
-    exit = jasmine.createSpy "process.exit"
-    readDir = jasmine.createSpy("readDir").andReturn files: [opts.root+'specs/foo_spec.js',
-                                                             opts.root+'specs/image.img',
-                                                             opts.root+'specs/bar_spec.js']
-
-    stubs =
-       fs: fs
-       flow: flow
-       "uglify-js": uglify
-       restler: restler
-       pyyaml: yaml
-       child_process: childProcess
-       "./readdir": readDir
-       "coffee-script" : coffee
-
-    stub = new Stubble stubs
+    stub = specHelper.generateStub configs, opts, returned
     Package = stub.require __dirname+'/../lib/package'
+    Package.prototype.complete = jasmine.createSpy "process.exit"
 
-    Package.prototype.complete = exit
 
   describe 'when loading a coffee-script project', ->
 
@@ -110,7 +52,7 @@ describe 'Package', ->
       opts.coffee = true
       opts.test_build_source_file = 'foo.js'
       opts.sources = ['http://www.example.com/foo.js', 'foo.coffee', 'bar.coffee']
-      pack = new Package opts, cmd
+      pack = new Package opts
       srcs = pack.sources
 
     it 'should return compiled and HTTP sources', ->
@@ -119,35 +61,37 @@ describe 'Package', ->
       expect(srcs[1]).toEqual opts.test_build_source_file
 
     it 'should compile coffee from sources', ->
-      expect(fs.readFileSync).toHaveBeenCalled()
-      expect(fs.readFileSync.calls.length).toEqual 3 # +1 for the config file
-      expect(fs.readFileSync.calls[1].args[0]).toEqual 'src/'+opts.sources[1]
-      expect(fs.readFileSync.calls[2].args[0]).toEqual 'src/'+opts.sources[2]
-      expect(coffee.compile).toHaveBeenCalled()
+      expect(stub.stubs.fs.readFileSync).toHaveBeenCalled()
+      expect(stub.stubs.fs.readFileSync.calls.length).toEqual 3 # +1 for the config file
+      expect(stub.stubs.fs.readFileSync.calls[1].args[0]).toEqual 'src/'+opts.sources[1]
+      expect(stub.stubs.fs.readFileSync.calls[2].args[0]).toEqual 'src/'+opts.sources[2]
+      expect(stub.stubs['coffee-script'].compile).toHaveBeenCalled()
 
     it 'should write the compiled coffee to the build file', ->
-      expect(fs.writeFileSync).toHaveBeenCalled()
-      expect(fs.writeFileSync.calls[0].args[0]).toBe opts.test_build_source_file
-      expect(fs.writeFileSync.calls[0].args[1]).toBe [compiled, compiled].join "\n"
+      expect(stub.stubs.fs.writeFileSync).toHaveBeenCalled()
+      expect(stub.stubs.fs.writeFileSync.calls[0].args[0]).toBe opts.test_build_source_file
+      expect(stub.stubs.fs.writeFileSync.calls[0].args[1]).toBe [returned.compiled, returned.compiled].join "\n"
 
   describe 'when loading configs fails', ->
 
     beforeEach ->
-      fs.readFileSync = jasmine.createSpy('fs.readFileSync').andReturn '{"bad_json" : tru'
-
-      pack = new Package opts, cmd
+      stub.stubs.fs.readFileSync = jasmine.createSpy('fs.readFileSync').andReturn '{"bad_json" : tru'
+      pack = new Package opts
 
     it 'should exit with code 1', ->
       expect(pack.exitCode).toEqual 1
 
   describe 'successfully loading configs', ->
 
+    cmd = undefined
     beforeEach ->
+      cmd =
+        second: 'x'
       pack = new Package opts, cmd
 
     it 'reads the jspackle.json file', ->
-      expect(fs.readFileSync).toHaveBeenCalled()
-      expect(fs.readFileSync.calls[0].args[0]).toEqual process.cwd()+'/jspackle.json'
+      expect(stub.stubs.fs.readFileSync).toHaveBeenCalled()
+      expect(stub.stubs.fs.readFileSync.calls[0].args[0]).toEqual process.cwd()+'/jspackle.json'
 
     runTest 'configs'
     runTest 'properties'

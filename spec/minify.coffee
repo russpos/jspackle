@@ -15,14 +15,14 @@ describe 'Package.minify', ->
       minified = pack.minify source
 
     it 'should parse the source', ->
-      expect(uglify.parser.parse).toHaveBeenCalled()
-      expect(uglify.parser.parse.calls[0].args[0]).toEqual source
+      expect(stub.stubs['uglify-js'].parser.parse).toHaveBeenCalled()
+      expect(stub.stubs['uglify-js'].parser.parse.calls[0].args[0]).toEqual source
 
     it 'should mangle the tokens', ->
-      expect(uglify.uglify.ast_mangle).toHaveBeenCalled()
+      expect(stub.stubs['uglify-js'].uglify.ast_mangle).toHaveBeenCalled()
 
     it 'should squeeze the mangled tokens', ->
-      expect(uglify.uglify.ast_squeeze).toHaveBeenCalled()
+      expect(stub.stubs['uglify-js'].uglify.ast_squeeze).toHaveBeenCalled()
 
     it 'should generate code from the mangled, squeezed tokens', ->
-      expect(uglify.uglify.gen_code).toHaveBeenCalled()
+      expect(stub.stubs['uglify-js'].uglify.gen_code).toHaveBeenCalled()

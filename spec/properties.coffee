@@ -22,8 +22,8 @@ describe 'package properties', ->
 
   it 'should have tests', ->
     tests = pack.tests
-    expect(readDir).toHaveBeenCalled()
-    expect(readDir.calls[0].args[0]).toEqual opts.root+'specs'
+    expect(stub.stubs['./readdir']).toHaveBeenCalled()
+    expect(stub.stubs['./readdir'].calls[0].args[0]).toEqual opts.root+'specs'
     expect(tests.length).toEqual 2
     expect(tests[0]).toEqual 'specs/foo_spec.js'
     expect(tests[1]).toEqual 'specs/bar_spec.js'
