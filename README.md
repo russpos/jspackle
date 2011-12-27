@@ -53,7 +53,7 @@ Assuming you have a project with this structure:
 You can then simple run `jspackle test` to execute our tests:
 
     $ jspackle test
-    jspackle v1.0.4
+    jspackle v1.0.7
 
     % info    | Executing command: 'test'
     % info    | Executing 2 specs
@@ -74,7 +74,7 @@ You can then simple run `jspackle test` to execute our tests:
 When you are ready to distribute your multifile application, simply run `build`:
 
     $ jspackle build
-    jspackle v1.0.4
+    jspackle v1.0.7
 
     % info    | Executing command: 'build'
     % info    | Found 2 source file
@@ -105,8 +105,11 @@ Optional configs.  These all have sane default values, but can be tweaked if des
     to manually specify them.
 
 ### Build task configs:
- * `minify`         - (False) Should the output be minified? (uses uglify-js)
- * `build_output`   - ("output.js") File name to use when executing `build` task
+ * `minify`          - (False) Should the output be minified? (uses uglify-js)
+ * `include_depends` - (False) Should the output include dependencies?
+ * `build_output`    - ("output.js") File name to use when executing `build` task. This argument
+   can take mustache style templating variables to include the values of both `name`
+   and `version`.  For example: `{{name}}.{{version}}.min.js`
 
 ### Test task configs:
  * `test_server`    - ("http://localhost:9876") JsTestDriver server to use for testing
