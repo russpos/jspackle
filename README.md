@@ -1,6 +1,7 @@
 # jspackle
 
 
+
 `jspackle` is a tool for continuous integration of client-side JavaScript packages. It allows you to define a package
 in a simple JSON format, and provides mechanisms for executing basic tasks via a commandline interface.
 
