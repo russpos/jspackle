@@ -13,9 +13,6 @@ in a simple JSON format, and provides mechanisms for executing basic tasks via a
  * `build` - Combine, compile, and minify sources. Also has built in support for `coffee-script`.  Uses `uglify-js`
   as its parser.
 
- * `serve` - Serve the package in either production or development mode.  Great for testing your
-   project as part of your website.  This feature is not yet complete.
-
 **NOTE:** In order to use this tool, you need to have JsTestDriver installed, and available
 via the command `js-test-driver`
 
