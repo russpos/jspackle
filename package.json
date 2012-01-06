@@ -10,6 +10,7 @@
     , "commander"  : ">= 0.2.0 < 0.4.2"
     , "flow"       : "0.2.2"
     , "ejs"        : "0.6.1"
+    , "jasmine-node" : "1.0.13"
     , "restler"    : "0.2.3"
     , "underscore" : "1.2.0"
     , "uglify-js"  : "1.2.0"
@@ -21,7 +22,7 @@
       "stubble" : "0.1.0"
   },
   "scripts" : {
-    "test": "jasmine-node --coffee ./spec",
+    "test": "./node_modules/jasmine-node/bin/jasmine-node --coffee ./spec",
     "docs": "./bin/generate_docs"
   }
 }
