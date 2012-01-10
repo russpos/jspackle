@@ -1,6 +1,7 @@
 # jspackle
 
 
+![Travis-CI Status](https://secure.travis-ci.org/russjp1985/jspackle.png)
 
 `jspackle` is a tool for continuous integration of client-side JavaScript packages. It allows you to define a package
 in a simple JSON format, and provides mechanisms for executing basic tasks via a commandline interface.
