@@ -124,6 +124,7 @@ Optional configs.  These all have sane default values, but can be tweaked if des
  * `-n, --no-color`  - Disable colors in the output.
  * `-p, --path`      - ("jspackle.json") Path of the config file.  You probably don't want
     to change this, but could be useful in certain scenarios.
+ * `-C, --coverage`  - Path to JSTD coverage plugin to use
 
 ### Commandline overrides
 Any of the task specific configs can be overridden from the commandline.

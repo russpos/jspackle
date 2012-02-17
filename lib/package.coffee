@@ -300,6 +300,13 @@ Output:
     configs.load = @depends.concat(@testDepends).concat(@sources)
     configs.test = @tests
 
+    if @opts.coverage
+      configs.plugin = [
+        name: "coverage"
+        jar: @opts.coverage
+        module: "com.google.jstestdriver.coverage.CoverageModule"
+      ]
+
     logging.info "Executing #{configs.test.length} specs"
 
     path = "#{@opts.root}JsTestDriver.conf"

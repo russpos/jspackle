@@ -44,6 +44,13 @@ describe 'running tests', ->
         'specs/bar_spec.js'
       ]
 
+    it 'store coverage option as ', ->
+      expect(stub.stubs.pyyaml.dump.calls[0].args[0].plugin).toEqual [
+        name: "coverage"
+        jar: opts.coverage
+        module: "com.google.jstestdriver.coverage.CoverageModule"
+      ]
+
     it 'writes the file to the file JsTestDriver.conf in the root', ->
       expect(stub.stubs.pyyaml.dump.calls[0].args[1]).toEqual process.cwd()+'/JsTestDriver.conf'
 

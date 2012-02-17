@@ -39,11 +39,11 @@ describe 'Package', ->
       path: 'jspackle.json'
       first: 'a'
       second: 'b'
+      coverage: './coverage.jar'
 
     stub = specHelper.generateStub configs, opts, returned
     Package = stub.require __dirname+'/../lib/package'
     Package.prototype.complete = jasmine.createSpy "process.exit"
-
 
   describe 'when loading a coffee-script project', ->
 
@@ -100,4 +100,3 @@ describe 'Package', ->
     runTest 'build_depends'
     runTest 'minify'
     runTest 'get'
-
