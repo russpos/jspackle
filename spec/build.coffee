@@ -19,12 +19,12 @@ describe 'building', ->
         stub.stubs.flow.exec.calls[0].args[0].apply dummyExec
 
       it 'should load sources', ->
-        expect(stub.stubs.fs.readFile).toHaveBeenCalled()
-        expect(stub.stubs.fs.readFile.calls.length).toEqual 4
-        expect(stub.stubs.fs.readFile.calls[0].args[0]).toEqual process.cwd()+'/requires/jquery.js'
-        expect(stub.stubs.fs.readFile.calls[1].args[0]).toEqual process.cwd()+'/src/foo.js'
-        expect(stub.stubs.fs.readFile.calls[2].args[0]).toEqual process.cwd()+'/src/baz.js'
-        expect(stub.stubs.fs.readFile.calls[3].args[0]).toEqual process.cwd()+'/src/bar.js'
+        expect(stub.stubs['node-fs'].readFile).toHaveBeenCalled()
+        expect(stub.stubs['node-fs'].readFile.calls.length).toEqual 4
+        expect(stub.stubs['node-fs'].readFile.calls[0].args[0]).toEqual process.cwd()+'/requires/jquery.js'
+        expect(stub.stubs['node-fs'].readFile.calls[1].args[0]).toEqual process.cwd()+'/src/foo.js'
+        expect(stub.stubs['node-fs'].readFile.calls[2].args[0]).toEqual process.cwd()+'/src/baz.js'
+        expect(stub.stubs['node-fs'].readFile.calls[3].args[0]).toEqual process.cwd()+'/src/bar.js'
 
       it 'should fetch HTTP sources', ->
         expect(pack.httpGet).toHaveBeenCalled()
@@ -37,17 +37,17 @@ describe 'building', ->
         stub.stubs.flow.exec.calls[0].args[0].apply dummyExec
 
       it 'should load sources', ->
-        expect(stub.stubs.fs.readFile).toHaveBeenCalled()
-        expect(stub.stubs.fs.readFile.calls.length).toEqual 3
-        expect(stub.stubs.fs.readFile.calls[0].args[0]).toEqual process.cwd()+'/src/foo.js'
-        expect(stub.stubs.fs.readFile.calls[1].args[0]).toEqual process.cwd()+'/src/baz.js'
-        expect(stub.stubs.fs.readFile.calls[2].args[0]).toEqual process.cwd()+'/src/bar.js'
+        expect(stub.stubs['node-fs'].readFile).toHaveBeenCalled()
+        expect(stub.stubs['node-fs'].readFile.calls.length).toEqual 3
+        expect(stub.stubs['node-fs'].readFile.calls[0].args[0]).toEqual process.cwd()+'/src/foo.js'
+        expect(stub.stubs['node-fs'].readFile.calls[1].args[0]).toEqual process.cwd()+'/src/baz.js'
+        expect(stub.stubs['node-fs'].readFile.calls[2].args[0]).toEqual process.cwd()+'/src/bar.js'
 
   describe 'when the reading fails', ->
 
     beforeEach ->
       stub.stubs.flow.exec.calls[0].args[0].apply dummyExec
-      for index, call of stub.stubs.fs.readFile.calls
+      for index, call of stub.stubs['node-fs'].readFile.calls
         call.args[1] 'Error', index+1
       stub.stubs.flow.exec.calls[0].args[1].apply dummyExec
 
@@ -64,7 +64,7 @@ describe 'building', ->
       processExec = (f, fs, exec)->
         ###
         Stubs out the asynchronous file reads to our source files.
-        For each stub.stubs.fs.readFile call, execute its callback as if it loaded
+        For each stub.stubs['node-fs'].readFile call, execute its callback as if it loaded
         the a single line, setting a single letter variable to the string
         of the name of the file, eg:
 
@@ -87,7 +87,7 @@ describe 'building', ->
 
       beforeEach ->
         pack.opts.minify = on
-        output = processExec stub.stubs.flow, stub.stubs.fs, dummyExec
+        output = processExec stub.stubs.flow, stub.stubs['node-fs'], dummyExec
 
       it 'should pass the data through the minifier', ->
         expect(minify).toHaveBeenCalled()
@@ -99,12 +99,12 @@ describe 'building', ->
         pack.opts.name = 'russ'
         pack.opts.version = '2.0'
         pack.opts.build_output = "{{name}}.{{version}}.js"
-        output = processExec stub.stubs.flow, stub.stubs.fs, dummyExec
+        output = processExec stub.stubs.flow, stub.stubs['node-fs'], dummyExec
 
       it 'should write the contents', ->
-        expect(stub.stubs.fs.writeFile).toHaveBeenCalled()
-        expect(stub.stubs.fs.writeFile.calls.length).toEqual 1
-        expect(stub.stubs.fs.writeFile.calls[0].args[0]).toEqual process.cwd()+'/russ.2.0.js'
+        expect(stub.stubs['node-fs'].writeFile).toHaveBeenCalled()
+        expect(stub.stubs['node-fs'].writeFile.calls.length).toEqual 1
+        expect(stub.stubs['node-fs'].writeFile.calls[0].args[0]).toEqual process.cwd()+'/russ.2.0.js'
 
 
     describe 'when minification is off', ->
@@ -112,13 +112,13 @@ describe 'building', ->
       output = undefined
       beforeEach ->
         pack.opts.minify = off
-        output = processExec stub.stubs.flow, stub.stubs.fs, dummyExec
+        output = processExec stub.stubs.flow, stub.stubs['node-fs'], dummyExec
 
       it 'should write the contents', ->
-        expect(stub.stubs.fs.writeFile).toHaveBeenCalled()
-        expect(stub.stubs.fs.writeFile.calls.length).toEqual 1
-        expect(stub.stubs.fs.writeFile.calls[0].args[0]).toEqual process.cwd()+'/output.js'
-        expect(stub.stubs.fs.writeFile.calls[0].args[1]).toEqual output
+        expect(stub.stubs['node-fs'].writeFile).toHaveBeenCalled()
+        expect(stub.stubs['node-fs'].writeFile.calls.length).toEqual 1
+        expect(stub.stubs['node-fs'].writeFile.calls[0].args[0]).toEqual process.cwd()+'/output.js'
+        expect(stub.stubs['node-fs'].writeFile.calls[0].args[1]).toEqual output
 
       describe 'when writing succeeds', ->
         beforeEach ->
@@ -133,4 +133,3 @@ describe 'building', ->
 
         it 'should exit with a 1', ->
           expect(pack.exitCode).toEqual 1
-

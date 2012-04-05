@@ -15,7 +15,7 @@ Load any methods or libraries that interact with the outside
 coffee =  require 'coffee-script'
 exec =    require('child_process').exec
 flow =    require 'flow'
-fs =      require 'fs'
+fs =      require 'node-fs'
 restler = require 'restler'
 readDir = require './readdir'
 uglify =  require 'uglify-js'
@@ -30,8 +30,7 @@ defaults =
   minify: false
   include_depends: false
   depends_folder: 'requires'
-  test_build_source_file: 'auto-source.js'
-  test_build_test_file: 'auto-test.js'
+  test_build_folder: 'build'
   spec_folder: 'specs'
   source_folder: 'src'
   build_output: 'output.js'
@@ -235,8 +234,10 @@ class Package
   clean: (flow)->
     logging.info "Cleaning up after jspackle run..."
     fs.unlink "#{@opts.root}JsTestDriver.conf", flow.MULTI()
-    fs.unlink @opts.test_build_source_file, flow.MULTI()
-    fs.unlink @opts.test_build_test_file, flow.MULTI()
+    exec "rm -rf #{@opts.test_build_folder}", (err, stdout, stderr) ->
+      if err
+        logging.warn stderr
+      flow.MULTI()
 
   ###
   @description Minifies the source provided to it.
@@ -313,22 +314,26 @@ Output:
     logging.debug "Dumping configs to: #{path}"
     yaml.dump configs, path, callback
 
-  _coffeeCompile: (sources, path)->
-    logging.info "Compiling coffee-script to '#{path}'"
-    compiled = []
+  _coffeeCompile: (sources, buildFolder)->
     paths = []
     for src in sources
       if src.isHTTP()
         paths.push src
       else
         try
-          compiled.push coffee.compile fs.readFileSync(src).toString()
+          compiled = coffee.compile fs.readFileSync(src).toString()
         catch e
           logging.critical "Cannot parse #{src} as valid CoffeeScript!"
           logging.critical e
           throw e
-    fs.writeFileSync path, compiled.join "\n"
-    paths.push path
+
+        fileName = pathLib.join buildFolder, src.replace('.coffee', '.js')
+        filePath = pathLib.join buildFolder, pathLib.dirname src
+
+        fs.mkdirSync filePath, 0777, true
+        logging.info "Compiling #{src} to '#{fileName}'"
+        fs.writeFileSync fileName, compiled
+        paths.push fileName
     return paths
 
   _findTests: ->
@@ -345,27 +350,26 @@ Output:
   ###
   _generateOutputPath: ->
     filePath = pathLib.join @opts.root, @opts.build_output
-    #console.log @opts
     for variable in ['name', 'version']
       re = new RegExp "{{#{variable}}}", 'g'
       filePath = filePath.replace re, @opts[variable]
     return filePath
 
-  _process: (option, folder, compile=false)->
+  _process: (option, folder, buildFolder='')->
     root = folder+'/'
     sources = []
     if typeof option == 'string'
-      paths = @opts[option]
+      srcPaths = @opts[option]
     else
-      paths = option
+      srcPaths = option
 
-    for path in paths
-      if path.isHTTP()
-        sources.push path
+    for source in srcPaths
+      if source.isHTTP()
+        sources.push source
       else
-        sources.push root+path
-    return sources if not (compile and @opts.coffee)
-    @_coffeeCompile sources, compile
+        sources.push root+source
+    return sources if not (buildFolder and @opts.coffee)
+    @_coffeeCompile sources, buildFolder
 
 ###
 Read only properties
@@ -376,7 +380,7 @@ Defines read-only properties on the Package object using  v8's
 are provided as part of the configuration into fleshed out properties.
 ###
 Package.prototype.__defineGetter__ 'sources', ->
-  @_process 'sources', @opts.source_folder, @opts.test_build_source_file
+  @_process 'sources', @opts.source_folder, @opts.test_build_folder
 
 Package.prototype.__defineGetter__ 'depends', ->
   @_process 'depends', @opts.depends_folder
@@ -385,7 +389,7 @@ Package.prototype.__defineGetter__ 'testDepends', ->
   @_process 'test_depends', @opts.depends_folder
 
 Package.prototype.__defineGetter__ 'tests', ->
-  @_process @_findTests(), @opts.spec_folder, @opts.test_build_test_file
+  @_process @_findTests(), @opts.spec_folder, @opts.test_build_folder
 
 Package.prototype.__defineGetter__ 'testCmd', ->
   "js-test-driver --config ./JsTestDriver.conf --tests all --reset #{@opts.test_args}"

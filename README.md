@@ -95,6 +95,7 @@ Optional configs.  These all have sane default values, but can be tweaked if des
 
  * `coffee`         - (False) Is this project written in CoffeeScript? Any truthy value will
     flip jspackle to run in CoffeeScript mode
+ * `test_build_folder` - ("build") Temporary folder to put compiled coffeescript source files to run tests.
  * `depends_folder` - ("requires") Folder that contains dependencies in order for the
     tests to run
  * `source_folder`  - ("src") Folder that contains your application source
