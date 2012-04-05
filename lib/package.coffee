@@ -324,7 +324,7 @@ Output:
         try
           compiled.push coffee.compile fs.readFileSync(src).toString()
         catch e
-          logging.critical "Cannot pase #{src} as valid CoffeeScript!"
+          logging.critical "Cannot parse #{src} as valid CoffeeScript!"
           logging.critical e
           throw e
     fs.writeFileSync path, compiled.join "\n"
