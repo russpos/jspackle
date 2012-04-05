@@ -5,8 +5,10 @@ pathLib = require 'path'
 String::isHTTP = ->
   @substring(0, 7) == 'http://' or @substring(0, 8) == 'https://'
 
-String::isScript = ->
-  this.substring(this.length-2) is 'js' or this.substring(this.length-6) is 'coffee'
+String::isCoffee = -> pathLib.extname(pathLib.basename(@))  == '.coffee'
+String::isJs = -> pathLib.extname(pathLib.basename(@))  == '.js'
+
+String::isScript = -> @isCoffee or @isJs
 
 ###
 Load any methods or libraries that interact with the outside
@@ -314,27 +316,22 @@ Output:
     logging.debug "Dumping configs to: #{path}"
     yaml.dump configs, path, callback
 
-  _coffeeCompile: (sources, buildFolder)->
-    paths = []
-    for src in sources
-      if src.isHTTP()
-        paths.push src
-      else
-        try
-          compiled = coffee.compile fs.readFileSync(src).toString()
-        catch e
-          logging.critical "Cannot parse #{src} as valid CoffeeScript!"
-          logging.critical e
-          throw e
+  _coffeeCompile: (src, buildFolder)->
+    # Compiles a coffeescript file and writes it to buildFolder
+    try
+      compiled = coffee.compile fs.readFileSync(src).toString()
+    catch e
+      logging.critical "Cannot parse #{src} as valid CoffeeScript!"
+      logging.critical e
+      throw e
 
-        fileName = pathLib.join buildFolder, src.replace('.coffee', '.js')
-        filePath = pathLib.join buildFolder, pathLib.dirname src
+    fileName = pathLib.join buildFolder, src.replace('.coffee', '.js')
+    filePath = pathLib.join buildFolder, pathLib.dirname src
 
-        fs.mkdirSync filePath, 0777, true
-        logging.info "Compiling #{src} to '#{fileName}'"
-        fs.writeFileSync fileName, compiled
-        paths.push fileName
-    return paths
+    fs.mkdirSync filePath, 0777, true
+    logging.info "Compiling #{src} to '#{fileName}'"
+    fs.writeFileSync fileName, compiled
+    return fileName
 
   _findTests: ->
     found = readDir @opts.root+@opts.spec_folder
@@ -355,7 +352,7 @@ Output:
       filePath = filePath.replace re, @opts[variable]
     return filePath
 
-  _process: (option, folder, buildFolder='')->
+  _process: (option, folder, buildFolder=@opts.test_build_folder)->
     root = folder+'/'
     sources = []
     if typeof option == 'string'
@@ -365,11 +362,17 @@ Output:
 
     for source in srcPaths
       if source.isHTTP()
-        sources.push source
+        if source.isJs()
+          sources.push source
+        else
+          logging.warn "Cannot include coffee script HTTP resources!"
+      else if source.isJs()
+          sources.push root+source
+      else if source.isCoffee()
+        sources.push @_coffeeCompile root+source, buildFolder
       else
-        sources.push root+source
-    return sources if not (buildFolder and @opts.coffee)
-    @_coffeeCompile sources, buildFolder
+        logging.warn "Ignoring unkonown file type #{source}"
+    return sources
 
 ###
 Read only properties
