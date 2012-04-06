@@ -36,6 +36,7 @@ module.exports =
       unlink:        jasmine.createSpy "fs.unlink"
       writeFile:     jasmine.createSpy "fs.writeFile"
       writeFileSync: jasmine.createSpy "fs.writeFileSync"
+      mkdirSync: jasmine.createSpy "fs.mkdirSync"
 
     # Stub flow
     flow =
@@ -47,7 +48,7 @@ module.exports =
                                                              opts.root+'specs/bar_spec.js']
 
     stubs =
-       fs: fs
+       'node-fs': fs
        flow: flow
        "uglify-js": uglify
        restler: restler
