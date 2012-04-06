@@ -11,6 +11,7 @@
     , "flow"       : "0.2.2"
     , "ejs"        : "0.6.1"
     , "jasmine-node" : "1.0.13"
+    , "node-fs" : "latest"
     , "restler"    : "0.2.3"
     , "underscore" : "1.2.0"
     , "uglify-js"  : "1.2.0"

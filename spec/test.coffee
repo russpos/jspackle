@@ -44,6 +44,13 @@ describe 'running tests', ->
         'specs/bar_spec.js'
       ]
 
+    it 'store coverage option as ', ->
+      expect(stub.stubs.pyyaml.dump.calls[0].args[0].plugin).toEqual [
+        name: "coverage"
+        jar: opts.coverage
+        module: "com.google.jstestdriver.coverage.CoverageModule"
+      ]
+
     it 'writes the file to the file JsTestDriver.conf in the root', ->
       expect(stub.stubs.pyyaml.dump.calls[0].args[1]).toEqual process.cwd()+'/JsTestDriver.conf'
 
@@ -70,8 +77,8 @@ describe 'running tests', ->
             stub.stubs.flow.exec.calls[0].args[2].apply dummyExec, [127]
             stub.stubs.flow.exec.calls[0].args[3].apply dummyExec, []
           it 'should clean', ->
-            expect(stub.stubs.fs.unlink).toHaveBeenCalled()
-            expect(stub.stubs.fs.unlink.calls.length).toEqual 3
+            expect(stub.stubs['node-fs'].unlink).toHaveBeenCalled()
+            expect(stub.stubs['node-fs'].unlink.calls.length).toEqual 1
 
           it 'should exit with the provided error code', ->
             expect(pack.exitCode).toEqual 127
@@ -82,8 +89,11 @@ describe 'running tests', ->
             stub.stubs.flow.exec.calls[0].args[3].apply dummyExec, []
 
           it 'should clean', ->
-            expect(stub.stubs.fs.unlink).toHaveBeenCalled()
-            expect(stub.stubs.fs.unlink.calls.length).toEqual 3
+            expect(stub.stubs['node-fs'].unlink).toHaveBeenCalled()
+            expect(stub.stubs['node-fs'].unlink.calls.length).toEqual 1
+
+          it 'should remove old build dir', ->
+            expect(stub.stubs.child_process.exec.calls[1].args[0]).toEqual('rm -rf build')
 
           it 'should exit with a code of 0', ->
             expect(pack.exitCode).toEqual 0

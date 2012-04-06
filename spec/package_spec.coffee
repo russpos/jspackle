@@ -39,43 +39,49 @@ describe 'Package', ->
       path: 'jspackle.json'
       first: 'a'
       second: 'b'
+      coverage: './coverage.jar'
 
     stub = specHelper.generateStub configs, opts, returned
     Package = stub.require __dirname+'/../lib/package'
     Package.prototype.complete = jasmine.createSpy "process.exit"
 
-
   describe 'when loading a coffee-script project', ->
 
     srcs = undefined
     beforeEach ->
-      opts.coffee = true
-      opts.test_build_source_file = 'foo.js'
+      opts.source_folder = 'src'
+      opts.test_build_folder = 'build'
       opts.sources = ['http://www.example.com/foo.js', 'foo.coffee', 'bar.coffee']
       pack = new Package opts
       srcs = pack.sources
 
-    it 'should return compiled and HTTP sources', ->
-      expect(srcs.length).toEqual 2
+    it 'should return the same number of source files', ->
+      expect(srcs.length).toEqual opts.sources.length
+
+    it 'should return HTTP sources unchanged', ->
       expect(srcs[0]).toEqual opts.sources[0]
-      expect(srcs[1]).toEqual opts.test_build_source_file
+
+    it 'should return compiled coffeescript sources', ->
+      expect(srcs[1]).toEqual path.join(opts.test_build_folder, opts.source_folder, opts.sources[1].replace('.coffee', '.js'))
 
     it 'should compile coffee from sources', ->
-      expect(stub.stubs.fs.readFileSync).toHaveBeenCalled()
-      expect(stub.stubs.fs.readFileSync.calls.length).toEqual 3 # +1 for the config file
-      expect(stub.stubs.fs.readFileSync.calls[1].args[0]).toEqual 'src/'+opts.sources[1]
-      expect(stub.stubs.fs.readFileSync.calls[2].args[0]).toEqual 'src/'+opts.sources[2]
+      expect(stub.stubs['node-fs'].readFileSync).toHaveBeenCalled()
+      expect(stub.stubs['node-fs'].readFileSync.calls.length).toEqual 3 # +1 for the config file
+      expect(stub.stubs['node-fs'].readFileSync.calls[1].args[0]).toEqual 'src/'+opts.sources[1]
+      expect(stub.stubs['node-fs'].readFileSync.calls[2].args[0]).toEqual 'src/'+opts.sources[2]
       expect(stub.stubs['coffee-script'].compile).toHaveBeenCalled()
 
-    it 'should write the compiled coffee to the build file', ->
-      expect(stub.stubs.fs.writeFileSync).toHaveBeenCalled()
-      expect(stub.stubs.fs.writeFileSync.calls[0].args[0]).toBe opts.test_build_source_file
-      expect(stub.stubs.fs.writeFileSync.calls[0].args[1]).toBe [returned.compiled, returned.compiled].join "\n"
+    it 'should make the source directory in the test build directory', ->
+      expect(stub.stubs['node-fs'].mkdirSync).toHaveBeenCalledWith('build/src', 0777, true)
+
+    it 'should write the compiled coffee to the build dir', ->
+      expect(stub.stubs['node-fs'].writeFileSync).toHaveBeenCalledWith('build/src/foo.js', {})
+      expect(stub.stubs['node-fs'].writeFileSync.calls[1].args).toEqual ['build/src/bar.js', {}]
 
   describe 'when loading configs fails', ->
 
     beforeEach ->
-      stub.stubs.fs.readFileSync = jasmine.createSpy('fs.readFileSync').andReturn '{"bad_json" : tru'
+      stub.stubs['node-fs'].readFileSync = jasmine.createSpy('fs.readFileSync').andReturn '{"bad_json" : tru'
       pack = new Package opts
 
     it 'should exit with code 1', ->
@@ -90,8 +96,8 @@ describe 'Package', ->
       pack = new Package opts, cmd
 
     it 'reads the jspackle.json file', ->
-      expect(stub.stubs.fs.readFileSync).toHaveBeenCalled()
-      expect(stub.stubs.fs.readFileSync.calls[0].args[0]).toEqual process.cwd()+'/jspackle.json'
+      expect(stub.stubs['node-fs'].readFileSync).toHaveBeenCalled()
+      expect(stub.stubs['node-fs'].readFileSync.calls[0].args[0]).toEqual process.cwd()+'/jspackle.json'
 
     runTest 'configs'
     runTest 'properties'
@@ -100,4 +106,3 @@ describe 'Package', ->
     runTest 'build_depends'
     runTest 'minify'
     runTest 'get'
-
