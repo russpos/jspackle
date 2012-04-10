@@ -23,6 +23,7 @@ module.exports = ->
     .option('-q, --quiet', 'Only print critical errors to the screen')
     .option('-n, --no-color', 'Disable colors in the output')
     .option('-m, --minify', 'Minify the build (uses uglify-js)')
+    .option('-c, --coffee', 'Look for and compile coffee-script files')
     .option('-r, --root <root>', 'The of the project', process.cwd()+'/')
     .option('-p, --path <path>', 'Path of the config file, relative to root', 'jspackle.json')
     .option('-s, --test_server <test_server>', 'Test server', 'http://localhost:9876')
@@ -64,5 +65,7 @@ module.exports = ->
   if program.quiet
     logging.setClean true
     logging.setLevel 'critical'
+  if program.coffee
+    logging.warn 'The coffee option is deprecated. Any source file ending in .coffee will be compiled.'
 
   task()
