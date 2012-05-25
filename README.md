@@ -157,7 +157,9 @@ These requests are also caught by the jspackle middleware, which finds the sourc
 files based on the package configs, reads the given source file off of disc, and then
 serves it to the browser.  It also handles CoffeeScript files right out of the box.
 Sources that end with `.coffee` will be compiled in real-time in memory by the jspackle
-middleware and served back to the browser as JavaScript.
+middleware and served back to the browser as JavaScript. If `include_depends` is `true`
+in the jspackle config the jspackle middleware will serve all dependencies before the
+source files.
 
 Here's a full example using the Express framework:
 

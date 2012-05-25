@@ -66,12 +66,12 @@ serveCoffeeScript = (res, source)->
 ###
 Loads the source at the given path.
 ###
-loadSource = (pack, source, res)->
+loadSource = (sourcePath, res)->
   try
-    fs.readFile path.join(pack.opts.root, pack.opts.source_folder, source), (err, data)->
+    fs.readFile sourcePath, (err, data)->
       return error err, res if err
       data = data.toString()
-      serve = if source.match new RegExp '\.coffee$' then serveCoffeeScript else serveJavaScript
+      serve = if sourcePath.match new RegExp '\.coffee$' then serveCoffeeScript else serveJavaScript
       serve res, data
   catch e
     error e, res
@@ -85,9 +85,10 @@ module.exports = (confPath, urlPath)->
 
   configs =
     url: urlPath
+    include_depends: false
 
   package = JSON.parse fs.readFileSync confPath
-  p = new Package root: path.dirname(confPath)+'/', path: path.basename(confPath)
+  packageObj = new Package root: path.dirname(confPath)+'/', path: path.basename(confPath)
 
   ###
   Creates a main JavaScript file which synchronously loads all the
@@ -101,6 +102,13 @@ module.exports = (confPath, urlPath)->
     if url is urlPath
       serveJavaScript res, main
     else if url.match new RegExp "^#{urlPath}"
-      loadSource p, url.replace(urlPath, ''), res
+      source = url.replace(urlPath, '')
+      if source.match /^\/depends/
+        source = source.replace /^\/depends/, ''
+        folder = packageObj.opts.depends_folder
+      else
+        folder = packageObj.opts.source_folder
+      srcPath = path.join packageObj.opts.root, folder, source
+      loadSource srcPath, res
     else
       next()
