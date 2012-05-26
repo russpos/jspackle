@@ -1,0 +1,7 @@
+{
+  "name" : "test_project_include_depends",
+  "depends" : ["jquery.js", "underscore.js"],
+  "test_depends" : ["jasmine.js"],
+  "include_depends": true,
+  "sources" : ["foo.js", "bar.js", "baz.js"]
+}
