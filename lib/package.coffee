@@ -371,7 +371,7 @@ Output:
       else if source.isCoffee()
         sources.push @_coffeeCompile root+source, buildFolder
       else
-        logging.warn "Ignoring unkonown file type #{source}"
+        logging.warn "Ignoring unknown file type #{source}"
     return sources
 
 ###
