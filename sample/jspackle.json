@@ -1,0 +1,10 @@
+{
+    "name" : "foo",
+    "version" : "1.2.3",
+    "depends" : [
+      "jquery.js"
+    ],
+    "sources" : [
+      "foo.js"
+    ]-
+}
